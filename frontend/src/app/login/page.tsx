@@ -1,0 +1,113 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useApp } from '@/context/AppContext';
+
+export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useApp();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    // Mock authentication
+    setTimeout(() => {
+      login({
+        id: 'user-1',
+        name: 'Demo User',
+        email: email,
+        role: 'user'
+      });
+      router.push('/dashboard');
+    }, 1000);
+  };
+
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-card p-8 md:p-10 rounded-2xl border border-border shadow-lg">
+        <div className="flex flex-col items-center">
+          <Link href="/" className="flex items-center gap-2 font-bold text-2xl tracking-tight mb-2">
+            <Shield className="h-8 w-8 text-primary" />
+            <span>SecureVPN</span>
+          </Link>
+          <h2 className="mt-4 text-center text-2xl font-bold tracking-tight text-foreground">
+            Sign in to your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <Link href="/register" className="font-medium text-primary hover:underline">
+              Register now
+            </Link>
+          </p>
+        </div>
+
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Email address</label>
+              <Input 
+                type="email" 
+                required 
+                className="mt-1 h-12" 
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Password</label>
+                <div className="text-sm">
+                  <a href="#" className="font-medium text-primary hover:underline">
+                    Forgot password?
+                  </a>
+                </div>
+              </div>
+              <Input 
+                type="password" 
+                required 
+                className="mt-1 h-12" 
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full h-12 text-base font-semibold"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </form>
+
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-card px-2 text-muted-foreground">Admin Access</span>
+            </div>
+          </div>
+          <div className="mt-6 text-center">
+            <Link href="/admin/login" className="text-sm font-medium text-primary hover:underline">
+              Sign in as Administrator
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

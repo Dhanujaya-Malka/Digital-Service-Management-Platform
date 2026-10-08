@@ -1,0 +1,48 @@
+import { Package } from '@/types';
+
+export const defaultPackages: Package[] = [
+  {
+    id: 'dialog-wifi',
+    name: 'Dialog Zoom WiFi Bypass',
+    price: 450,
+    duration: 30,
+    trafficLimit: 0,
+    features: ['Dialog Home Broadband (Router)', 'Zoom Package Required', 'Unlimited Data', 'High Speed Server', '1 Device Connection'],
+    popular: true,
+    availableSlots: 100,
+    category: 'dialog',
+  },
+  {
+    id: 'dialog-mobile',
+    name: 'Dialog Mobile Zoom Bypass',
+    price: 350,
+    duration: 30,
+    trafficLimit: 0,
+    features: ['Dialog Mobile Data', 'Zoom Package Required', 'Unlimited Data', 'Standard Speed', '1 Device Connection'],
+    popular: false,
+    availableSlots: 200,
+    category: 'dialog',
+  },
+  {
+    id: 'slt-4g',
+    name: 'SLT 4G Zoom Bypass',
+    price: 450,
+    duration: 30,
+    trafficLimit: 0,
+    features: ['SLT 4G Router', 'Zoom Package Required', 'Unlimited Data', 'High Speed Server', '1 Device Connection'],
+    popular: false,
+    availableSlots: 150,
+    category: 'slt',
+  },
+  {
+    id: 'slt-fiber',
+    name: 'SLT Fiber Zoom Bypass',
+    price: 550,
+    duration: 30,
+    trafficLimit: 0,
+    features: ['SLT Fiber Connection', 'Zoom Package Required', 'Unlimited Data', 'Ultra Speed Server', '3 Device Connections'],
+    popular: true,
+    availableSlots: 50,
+    category: 'slt',
+  },
+];
