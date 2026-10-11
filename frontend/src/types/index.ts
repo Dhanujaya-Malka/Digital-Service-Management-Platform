@@ -14,7 +14,12 @@ export interface Package {
   features: string[];
   popular: boolean;
   availableSlots: number; // For stock/availability
-  category?: string; // e.g., 'dialog', 'slt', 'mobitel'
+  category?: string; // e.g., 'dialog', 'slt', 'mobitel', 'airtel', 'hutch'
+  serverLocation?: string; // e.g., 'SG SERVER', 'IN SERVER', 'DE SERVER'
+  validity?: string; // e.g., '1 Month', '30 Days'
+  p2pTorrent?: 'Allowed' | 'Restricted';
+  speedLimit?: string; // e.g., 'No Speed Limit'
+  badge?: string; // e.g., 'ACTIVE', 'POPULAR', 'HOT'
 }
 
 export interface Subscription {

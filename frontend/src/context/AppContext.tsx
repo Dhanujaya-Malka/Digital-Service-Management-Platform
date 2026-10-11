@@ -31,32 +31,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [vpnConfig, setVpnConfig] = useState<VPNConfig | null>(null);
 
   useEffect(() => {
-    // Load from local storage or use defaults
+    // Versioned load to ensure new V2Ray fields appear automatically
+    const packageVersion = localStorage.getItem('vpn_packages_ver');
     const storedPackages = localStorage.getItem('vpn_packages');
-    if (storedPackages) {
+    if (storedPackages && packageVersion === 'v3') {
       setPackages(JSON.parse(storedPackages));
     } else {
       setPackages(defaultPackages);
       localStorage.setItem('vpn_packages', JSON.stringify(defaultPackages));
+      localStorage.setItem('vpn_packages_ver', 'v3');
     }
 
     const storedUser = localStorage.getItem('vpn_user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
       
-      // Initialize mock dashboard data when logged in
+      // Initialize mock dashboard data matching the screenshot
       setSubscription({
-        id: 'sub-1',
-        packageId: 'premium-1',
+        id: 'asyfckrhgfxsy1oc50xt',
+        packageId: 'slt-zoom-fiber',
         status: 'active',
-        startDate: new Date().toISOString(),
-        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        expiryDate: new Date(Date.now() + 396 * 24 * 60 * 60 * 1000).toISOString(),
       });
-      setUsage({ upload: 1.2, download: 7.2, total: 8.4 });
+      setUsage({ upload: 101.0, download: 676.7, total: 777.7 });
       setVpnConfig({
-        server: 'us-east-1.vpn.network',
+        server: 'sg-node-01.v2ray.network (Singapore)',
         status: 'connected',
-        configuration: 'vless://user@us-east-1.vpn.network:443?encryption=none&security=tls&type=tcp#VPN-US-East',
+        configuration: 'vless://asyfckrhgfxsy1oc50xt@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#SLT-Zoom-SG-01',
         qrCode: 'mock-qr-code',
       });
     }
@@ -83,19 +85,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const login = (userData: User) => {
     setUser(userData);
     localStorage.setItem('vpn_user', JSON.stringify(userData));
-    // Set mock data
+    // Set mock data matching screenshot
     setSubscription({
-      id: 'sub-1',
-      packageId: 'premium-1',
+      id: 'asyfckrhgfxsy1oc50xt',
+      packageId: 'slt-zoom-fiber',
       status: 'active',
-      startDate: new Date().toISOString(),
-      expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      expiryDate: new Date(Date.now() + 396 * 24 * 60 * 60 * 1000).toISOString(),
     });
-    setUsage({ upload: 1.2, download: 7.2, total: 8.4 });
+    setUsage({ upload: 101.0, download: 676.7, total: 777.7 });
     setVpnConfig({
-      server: 'us-east-1.vpn.network',
+      server: 'sg-node-01.v2ray.network (Singapore)',
       status: 'connected',
-      configuration: 'vless://user@us-east-1.vpn.network:443?encryption=none&security=tls&type=tcp#VPN-US-East',
+      configuration: 'vless://asyfckrhgfxsy1oc50xt@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#SLT-Zoom-SG-01',
       qrCode: 'mock-qr-code',
     });
   };

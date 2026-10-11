@@ -9,6 +9,7 @@ import { Shield, Lock, Zap, Smartphone, CheckCircle2, MapPin } from 'lucide-reac
 import Link from 'next/link';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getIspLogo } from '@/components/marketing/IspLogos';
 
 export default function Home() {
   const { packages } = useApp();
@@ -51,38 +52,66 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-24" id="pricing">
+      {/* V2Ray Services Section matching Screenshot 2 */}
+      <section className="py-24 relative" id="pricing">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
-            <p className="text-lg text-muted-foreground">
-              Choose the perfect plan for your needs. Change or cancel anytime.
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1 text-xs font-semibold text-emerald-400 mb-5">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>ALL SERVERS OPERATIONAL</span>
+            </div>
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">
+              V2Ray <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-blue-400">Services</span>
+            </h2>
+            <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto">
+              Fast, secure and reliable V2Ray VPN services in Sri Lanka.
             </p>
           </div>
 
-          <div className="max-w-6xl mx-auto mt-12 px-4">
-            <Tabs defaultValue="dialog" className="w-full">
-              <div className="flex justify-center mb-8">
-                <TabsList className="grid w-full max-w-md grid-cols-2">
-                  <TabsTrigger value="dialog">Dialog Packages</TabsTrigger>
-                  <TabsTrigger value="slt">SLT Packages</TabsTrigger>
+          <div className="max-w-6xl mx-auto mt-8 px-4">
+            <Tabs defaultValue="slt" className="w-full">
+              <div className="flex justify-center mb-10 overflow-x-auto pb-2">
+                <TabsList className="flex flex-wrap h-auto gap-2 p-1.5 bg-muted/60 backdrop-blur-md rounded-2xl border border-border/60">
+                  <TabsTrigger value="slt" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
+                    {getIspLogo('slt', 18)}
+                    <span>SLT</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="dialog" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
+                    {getIspLogo('dialog', 18)}
+                    <span>Dialog</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="mobitel" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
+                    {getIspLogo('mobitel', 18)}
+                    <span>Mobitel</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="airtel" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
+                    {getIspLogo('airtel', 18)}
+                    <span>Airtel</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="hutch" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
+                    {getIspLogo('hutch', 18)}
+                    <span>Hutch</span>
+                  </TabsTrigger>
                 </TabsList>
               </div>
-              <TabsContent value="dialog" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
-                  {dialogPackages.slice(0, 3).map((pkg) => (
-                    <PricingCard key={pkg.id} pkg={pkg} />
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="slt" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
-                  {sltPackages.slice(0, 3).map((pkg) => (
-                    <PricingCard key={pkg.id} pkg={pkg} />
-                  ))}
-                </div>
-              </TabsContent>
+
+              {['slt', 'dialog', 'mobitel', 'airtel', 'hutch'].map((cat) => {
+                const catPackages = packages.filter(p => p.category === cat);
+                return (
+                  <TabsContent key={cat} value={cat} className="mt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-center">
+                      {catPackages.map((pkg) => (
+                        <PricingCard key={pkg.id} pkg={pkg} />
+                      ))}
+                      {catPackages.length === 0 && (
+                        <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/20 rounded-2xl border border-dashed border-border">
+                          No packages currently available for this network.
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                );
+              })}
             </Tabs>
           </div>
         </div>

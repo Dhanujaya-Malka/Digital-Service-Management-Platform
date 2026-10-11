@@ -16,7 +16,7 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'Pricing', path: '/pricing' },
+    { name: 'V2Ray Services', path: '/pricing' },
     { name: 'How It Works', path: '/how-it-works' },
     { name: 'Support', path: '/support' },
   ];
