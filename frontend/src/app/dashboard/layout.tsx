@@ -8,17 +8,26 @@ import { Shield, LayoutDashboard, Server, Activity, CreditCard, User as UserIcon
 import { Button } from '@/components/ui/button';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useApp();
+  const { user, isInitialized, logout } = useApp();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!isInitialized) return;
     if (!user) {
       router.push('/login');
     } else if (user.role === 'admin') {
-      router.push('/admin');
+      router.push('/admin/packages');
     }
-  }, [user, router]);
+  }, [user, isInitialized, router]);
+
+  if (!isInitialized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   if (!user || user.role === 'admin') return null;
 

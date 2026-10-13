@@ -11,6 +11,7 @@ interface AppContextType {
   deletePackage: (id: string) => void;
   
   user: User | null;
+  isInitialized: boolean;
   login: (user: User) => void;
   logout: () => void;
 
@@ -22,8 +23,9 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [packages, setPackages] = useState<Package[]>([]);
+  const [packages, setPackages] = useState<Package[]>(defaultPackages);
   const [user, setUser] = useState<User | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Mock data for dashboard
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -35,7 +37,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const packageVersion = localStorage.getItem('vpn_packages_ver');
     const storedPackages = localStorage.getItem('vpn_packages');
     if (storedPackages && packageVersion === 'v4') {
-      setPackages(JSON.parse(storedPackages));
+      try {
+        setPackages(JSON.parse(storedPackages));
+      } catch (e) {
+        setPackages(defaultPackages);
+      }
     } else {
       setPackages(defaultPackages);
       localStorage.setItem('vpn_packages', JSON.stringify(defaultPackages));
@@ -44,7 +50,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const storedUser = localStorage.getItem('vpn_user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {}
       
       // Initialize mock dashboard data matching the screenshot
       setSubscription({
@@ -62,6 +70,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         qrCode: 'mock-qr-code',
       });
     }
+
+    setIsInitialized(true);
   }, []);
 
   const addPackage = (pkg: Package) => {
@@ -118,6 +128,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updatePackage,
         deletePackage,
         user,
+        isInitialized,
         login,
         logout,
         subscription,
