@@ -14,7 +14,8 @@ export interface Package {
   features: string[];
   popular: boolean;
   availableSlots: number; // For stock/availability
-  category?: string; // e.g., 'dialog', 'slt', 'mobitel', 'airtel', 'hutch'
+  category?: string; // e.g., 'basic', 'standard', 'premium', 'ultimate', 'dialog', 'slt', etc.
+  deviceLimit?: string; // e.g., '1 Device', '2 Devices', 'Unlimited Devices'
   serverLocation?: string; // e.g., 'SG SERVER', 'IN SERVER', 'DE SERVER'
   validity?: string; // e.g., '1 Month', '30 Days'
   p2pTorrent?: 'Allowed' | 'Restricted';

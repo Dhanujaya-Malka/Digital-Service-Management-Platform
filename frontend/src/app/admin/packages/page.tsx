@@ -25,15 +25,16 @@ export default function AdminPackagesPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [addForm, setAddForm] = useState<Partial<Package>>({
     name: '',
-    price: 450,
+    price: 300,
     duration: 30,
     validity: '1 Month',
-    trafficLimit: 0,
-    category: 'slt',
+    trafficLimit: 100,
+    deviceLimit: '1 Device',
+    category: 'basic',
     serverLocation: 'SG SERVER',
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
-    features: ['Works with Zoom & Teams', 'Zero Speed Throttling', 'Low Latency SG Peering'],
+    features: ['High-Speed V2Ray', 'SLT, Dialog, Mobitel, Airtel & Hutch', 'Zero Speed Throttling'],
     popular: false,
     availableSlots: 100,
   });
@@ -55,10 +56,11 @@ export default function AdminPackagesPage() {
         duration: Number(editForm.duration) || 30,
         validity: editForm.validity || `${editForm.duration || 30} Days`,
         trafficLimit: Number(editForm.trafficLimit) || 0,
+        deviceLimit: editForm.deviceLimit || '1 Device',
         features: editForm.features?.filter(f => f.trim() !== '') || [],
         popular: Boolean(editForm.popular),
         availableSlots: Number(editForm.availableSlots) || 0,
-        category: editForm.category || 'slt',
+        category: editForm.category || 'basic',
         serverLocation: editForm.serverLocation || 'SG SERVER',
         p2pTorrent: (editForm.p2pTorrent as 'Allowed' | 'Restricted') || 'Restricted',
         speedLimit: editForm.speedLimit || 'No Speed Limit',
@@ -78,10 +80,11 @@ export default function AdminPackagesPage() {
         duration: Number(addForm.duration) || 30,
         validity: addForm.validity || `${addForm.duration || 30} Days`,
         trafficLimit: Number(addForm.trafficLimit) || 0,
+        deviceLimit: addForm.deviceLimit || '1 Device',
         features: addForm.features?.filter(f => f.trim() !== '') || [],
         popular: Boolean(addForm.popular),
         availableSlots: Number(addForm.availableSlots) || 100,
-        category: addForm.category || 'slt',
+        category: addForm.category || 'basic',
         serverLocation: addForm.serverLocation || 'SG SERVER',
         p2pTorrent: (addForm.p2pTorrent as 'Allowed' | 'Restricted') || 'Restricted',
         speedLimit: addForm.speedLimit || 'No Speed Limit',
@@ -91,26 +94,27 @@ export default function AdminPackagesPage() {
       setIsAdding(false);
       setAddForm({
         name: '',
-        price: 450,
+        price: 300,
         duration: 30,
         validity: '1 Month',
-        trafficLimit: 0,
-        category: 'slt',
+        trafficLimit: 100,
+        deviceLimit: '1 Device',
+        category: 'basic',
         serverLocation: 'SG SERVER',
         p2pTorrent: 'Restricted',
         speedLimit: 'No Speed Limit',
-        features: ['Works with Zoom & Teams', 'Zero Speed Throttling', 'Low Latency SG Peering'],
+        features: ['High-Speed V2Ray', 'SLT, Dialog, Mobitel, Airtel & Hutch', 'Zero Speed Throttling'],
         popular: false,
         availableSlots: 100,
       });
     }
   };
 
-  // Reset to default ISP packages
+  // Reset to default packages
   const handleResetDefaults = () => {
-    if (confirm('Are you sure you want to restore all original SLT, Dialog, Mobitel, Airtel & Hutch packages? Custom packages will be replaced.')) {
+    if (confirm('Are you sure you want to restore all original VPN packages? Custom packages will be replaced.')) {
       localStorage.setItem('vpn_packages', JSON.stringify(defaultPackages));
-      localStorage.setItem('vpn_packages_ver', 'v3');
+      localStorage.setItem('vpn_packages_ver', 'v4');
       window.location.reload();
     }
   };
@@ -182,11 +186,15 @@ export default function AdminPackagesPage() {
         </div>
       </div>
 
-      {/* Network Category Filter Bar */}
+      {/* Network / Tier Category Filter Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase mr-2">Filter:</span>
         {[
           { id: 'all', label: 'All Plans' },
+          { id: 'basic', label: 'Basic' },
+          { id: 'standard', label: 'Standard' },
+          { id: 'premium', label: 'Premium' },
+          { id: 'ultimate', label: 'Ultimate' },
           { id: 'slt', label: 'SLT' },
           { id: 'dialog', label: 'Dialog' },
           { id: 'mobitel', label: 'Mobitel' },
@@ -239,17 +247,21 @@ export default function AdminPackagesPage() {
                 <Input 
                   value={addForm.name} 
                   onChange={(e) => setAddForm({...addForm, name: e.target.value})} 
-                  placeholder="e.g. SLT ZOOM (Fibre, 4G, ADSL)" 
+                  placeholder="e.g. Basic 50 GB or Standard 300 GB" 
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Network Provider / Category</Label>
+                <Label>Package Tier / Category</Label>
                 <select 
                   className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
-                  value={addForm.category || 'slt'}
+                  value={addForm.category || 'basic'}
                   onChange={(e) => setAddForm({...addForm, category: e.target.value})}
                 >
+                  <option value="basic">Basic Packages</option>
+                  <option value="standard">Standard Packages</option>
+                  <option value="premium">Premium Packages</option>
+                  <option value="ultimate">Ultimate Packages</option>
                   <option value="slt">SLT (Fibre / 4G / ADSL)</option>
                   <option value="dialog">Dialog (Home WiFi & Mobile)</option>
                   <option value="mobitel">Mobitel (Work & Learn / OneShot)</option>
@@ -265,6 +277,15 @@ export default function AdminPackagesPage() {
                   step="10" 
                   value={addForm.price} 
                   onChange={(e) => setAddForm({...addForm, price: parseFloat(e.target.value)})} 
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Device Limit</Label>
+                <Input 
+                  value={addForm.deviceLimit} 
+                  onChange={(e) => setAddForm({...addForm, deviceLimit: e.target.value})} 
+                  placeholder="e.g. 1 Device, 2 Devices, Unlimited Devices" 
                 />
               </div>
 
@@ -429,12 +450,16 @@ export default function AdminPackagesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Network Provider / Category</Label>
+                <Label>Package Tier / Category</Label>
                 <select 
                   className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
-                  value={editForm.category || 'slt'}
+                  value={editForm.category || 'basic'}
                   onChange={(e) => setEditForm({...editForm, category: e.target.value})}
                 >
+                  <option value="basic">Basic Packages</option>
+                  <option value="standard">Standard Packages</option>
+                  <option value="premium">Premium Packages</option>
+                  <option value="ultimate">Ultimate Packages</option>
                   <option value="slt">SLT (Fibre / 4G / ADSL)</option>
                   <option value="dialog">Dialog (Home WiFi & Mobile)</option>
                   <option value="mobitel">Mobitel (Work & Learn / OneShot)</option>
@@ -450,6 +475,15 @@ export default function AdminPackagesPage() {
                   step="10" 
                   value={editForm.price} 
                   onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value)})} 
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Device Limit</Label>
+                <Input 
+                  value={editForm.deviceLimit} 
+                  onChange={(e) => setEditForm({...editForm, deviceLimit: e.target.value})} 
+                  placeholder="e.g. 1 Device, 2 Devices, Unlimited Devices" 
                 />
               </div>
 
@@ -637,9 +671,15 @@ export default function AdminPackagesPage() {
                   <span className="font-semibold text-foreground">{pkg.serverLocation || 'SG SERVER'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Data Limit:</span>
+                  <span className="text-muted-foreground">Data Quota:</span>
                   <span className="font-semibold text-foreground">
                     {pkg.trafficLimit === 0 ? 'Unlimited' : `${pkg.trafficLimit} GB`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Device Limit:</span>
+                  <span className="font-semibold text-foreground">
+                    {pkg.deviceLimit || '1 Device'}
                   </span>
                 </div>
                 <div className="flex justify-between">

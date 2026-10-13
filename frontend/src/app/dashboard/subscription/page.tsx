@@ -4,7 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Calendar, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { CreditCard, Calendar, CheckCircle2, AlertTriangle, Smartphone, HardDrive } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SubscriptionPage() {
@@ -44,6 +44,16 @@ export default function SubscriptionPage() {
                       <CreditCard className="h-4 w-4" />
                       <span>Rs. {activePackage.price} / {activePackage.duration} days</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <HardDrive className="h-4 w-4" />
+                      <span>{activePackage.trafficLimit > 0 ? `${activePackage.trafficLimit} GB Data` : 'Unlimited Data'}</span>
+                    </div>
+                    {activePackage.deviceLimit && (
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="h-4 w-4" />
+                        <span>{activePackage.deviceLimit}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       <span>Started: {startDate}</span>

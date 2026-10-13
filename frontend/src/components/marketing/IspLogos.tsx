@@ -128,6 +128,46 @@ export function getIspLogo(category?: string, size = 20) {
       return <AirtelLogo size={size} />;
     case 'hutch':
       return <HutchLogo size={size} />;
+    case 'basic':
+      return (
+        <div 
+          style={{ width: size, height: size }} 
+          className="rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-[10px] font-black"
+          title="Basic Tier"
+        >
+          B
+        </div>
+      );
+    case 'standard':
+      return (
+        <div 
+          style={{ width: size, height: size }} 
+          className="rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px] font-black"
+          title="Standard Tier"
+        >
+          S
+        </div>
+      );
+    case 'premium':
+      return (
+        <div 
+          style={{ width: size, height: size }} 
+          className="rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center text-[10px] font-black"
+          title="Premium Tier"
+        >
+          P
+        </div>
+      );
+    case 'ultimate':
+      return (
+        <div 
+          style={{ width: size, height: size }} 
+          className="rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-[10px] font-black"
+          title="Ultimate Tier"
+        >
+          U
+        </div>
+      );
     default:
       return (
         <div 
@@ -139,3 +179,17 @@ export function getIspLogo(category?: string, size = 20) {
       );
   }
 }
+
+// Mini Strip of all Sri Lankan ISP Logos
+export function SriLankanIspStrip({ size = 16 }: { size?: number }) {
+  return (
+    <div className="flex items-center gap-1.5" title="Supports SLT, Dialog, Mobitel, Airtel & Hutch">
+      <SltLogo size={size} />
+      <DialogLogo size={size} />
+      <MobitelLogo size={size} />
+      <AirtelLogo size={size} />
+      <HutchLogo size={size} />
+    </div>
+  );
+}
+

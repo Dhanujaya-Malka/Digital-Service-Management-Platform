@@ -34,12 +34,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Versioned load to ensure new V2Ray fields appear automatically
     const packageVersion = localStorage.getItem('vpn_packages_ver');
     const storedPackages = localStorage.getItem('vpn_packages');
-    if (storedPackages && packageVersion === 'v3') {
+    if (storedPackages && packageVersion === 'v4') {
       setPackages(JSON.parse(storedPackages));
     } else {
       setPackages(defaultPackages);
       localStorage.setItem('vpn_packages', JSON.stringify(defaultPackages));
-      localStorage.setItem('vpn_packages_ver', 'v3');
+      localStorage.setItem('vpn_packages_ver', 'v4');
     }
 
     const storedUser = localStorage.getItem('vpn_user');
@@ -49,7 +49,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Initialize mock dashboard data matching the screenshot
       setSubscription({
         id: 'asyfckrhgfxsy1oc50xt',
-        packageId: 'slt-zoom-fiber',
+        packageId: 'standard-300gb',
         status: 'active',
         startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
         expiryDate: new Date(Date.now() + 396 * 24 * 60 * 60 * 1000).toISOString(),

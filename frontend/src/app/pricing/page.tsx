@@ -9,16 +9,29 @@ import { getIspLogo } from '@/components/marketing/IspLogos';
 
 export default function PricingPage() {
   const { packages } = useApp();
-  const [selectedCategory, setSelectedCategory] = useState<string>('slt');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const categories = [
-    { id: 'slt', label: 'SLT', count: packages.filter(p => p.category === 'slt').length },
-    { id: 'dialog', label: 'Dialog', count: packages.filter(p => p.category === 'dialog').length },
-    { id: 'mobitel', label: 'Mobitel', count: packages.filter(p => p.category === 'mobitel').length },
-    { id: 'airtel', label: 'Airtel', count: packages.filter(p => p.category === 'airtel').length },
-    { id: 'hutch', label: 'Hutch', count: packages.filter(p => p.category === 'hutch').length },
+  const baseCategories = [
     { id: 'all', label: 'All Plans', count: packages.length },
+    { id: 'basic', label: 'Basic', count: packages.filter(p => p.category === 'basic').length },
+    { id: 'standard', label: 'Standard', count: packages.filter(p => p.category === 'standard').length },
+    { id: 'premium', label: 'Premium', count: packages.filter(p => p.category === 'premium').length },
+    { id: 'ultimate', label: 'Ultimate', count: packages.filter(p => p.category === 'ultimate').length },
   ];
+
+  // Dynamic support for any custom/legacy categories
+  const standardIds = ['all', 'basic', 'standard', 'premium', 'ultimate'];
+  const extraCategories = Array.from(new Set(
+    packages
+      .map(p => p.category?.toLowerCase())
+      .filter((c): c is string => typeof c === 'string' && !standardIds.includes(c))
+  )).map(cat => ({
+    id: cat,
+    label: cat.toUpperCase(),
+    count: packages.filter(p => p.category?.toLowerCase() === cat).length
+  }));
+
+  const categories = [...baseCategories, ...extraCategories];
 
   const filteredPackages = selectedCategory === 'all'
     ? packages

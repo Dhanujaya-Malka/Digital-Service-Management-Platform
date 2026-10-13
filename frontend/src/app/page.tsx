@@ -5,7 +5,7 @@ import Hero from '@/components/marketing/Hero';
 import PricingCard from '@/components/marketing/PricingCard';
 import Testimonials from '@/components/marketing/Testimonials';
 import { Button } from '@/components/ui/button';
-import { Shield, Lock, Zap, Smartphone, CheckCircle2, MapPin } from 'lucide-react';
+import { Shield, Lock, Zap, Smartphone, CheckCircle2, MapPin, Wifi } from 'lucide-react';
 import Link from 'next/link';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,9 +13,14 @@ import { getIspLogo } from '@/components/marketing/IspLogos';
 
 export default function Home() {
   const { packages } = useApp();
-  
-  const dialogPackages = packages.filter(p => p.category === 'dialog');
-  const sltPackages = packages.filter(p => p.category === 'slt');
+
+  const tierCategories = [
+    { id: 'all', label: 'All Plans', count: packages.length },
+    { id: 'basic', label: 'Basic', count: packages.filter(p => p.category === 'basic').length },
+    { id: 'standard', label: 'Standard', count: packages.filter(p => p.category === 'standard').length },
+    { id: 'premium', label: 'Premium', count: packages.filter(p => p.category === 'premium').length },
+    { id: 'ultimate', label: 'Ultimate', count: packages.filter(p => p.category === 'ultimate').length },
+  ];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -64,48 +69,43 @@ export default function Home() {
               V2Ray <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-blue-400">Services</span>
             </h2>
             <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto">
-              Fast, secure and reliable V2Ray VPN services in Sri Lanka.
+              Fast, secure and reliable V2Ray VPN services in Sri Lanka with dedicated low-ping Singapore routes.
             </p>
           </div>
 
           <div className="max-w-6xl mx-auto mt-8 px-4">
-            <Tabs defaultValue="slt" className="w-full">
+            <Tabs defaultValue="all" className="w-full">
               <div className="flex justify-center mb-10 overflow-x-auto pb-2">
                 <TabsList className="flex flex-wrap h-auto gap-2 p-1.5 bg-muted/60 backdrop-blur-md rounded-2xl border border-border/60">
-                  <TabsTrigger value="slt" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
-                    {getIspLogo('slt', 18)}
-                    <span>SLT</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="dialog" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
-                    {getIspLogo('dialog', 18)}
-                    <span>Dialog</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="mobitel" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
-                    {getIspLogo('mobitel', 18)}
-                    <span>Mobitel</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="airtel" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
-                    {getIspLogo('airtel', 18)}
-                    <span>Airtel</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="hutch" className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
-                    {getIspLogo('hutch', 18)}
-                    <span>Hutch</span>
-                  </TabsTrigger>
+                  {tierCategories.map((cat) => (
+                    <TabsTrigger key={cat.id} value={cat.id} className="rounded-xl px-5 py-2.5 font-bold text-xs flex items-center gap-2">
+                      {cat.id === 'all' ? (
+                        <Wifi className="h-4 w-4 text-primary" />
+                      ) : (
+                        getIspLogo(cat.id, 18)
+                      )}
+                      <span>{cat.label}</span>
+                      {cat.count > 0 && (
+                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.2 rounded-full">
+                          {cat.count}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                  ))}
                 </TabsList>
               </div>
 
-              {['slt', 'dialog', 'mobitel', 'airtel', 'hutch'].map((cat) => {
-                const catPackages = packages.filter(p => p.category === cat);
+              {tierCategories.map((cat) => {
+                const catPackages = cat.id === 'all' ? packages : packages.filter(p => p.category === cat.id);
                 return (
-                  <TabsContent key={cat} value={cat} className="mt-0">
+                  <TabsContent key={cat.id} value={cat.id} className="mt-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-center">
                       {catPackages.map((pkg) => (
                         <PricingCard key={pkg.id} pkg={pkg} />
                       ))}
                       {catPackages.length === 0 && (
                         <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/20 rounded-2xl border border-dashed border-border">
-                          No packages currently available for this network.
+                          No packages currently available in this category.
                         </div>
                       )}
                     </div>
