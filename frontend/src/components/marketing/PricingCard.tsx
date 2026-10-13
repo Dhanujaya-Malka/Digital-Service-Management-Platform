@@ -14,9 +14,10 @@ interface PricingCardProps {
 
 export default function PricingCard({ pkg }: PricingCardProps) {
   const router = useRouter();
-  const { user } = useApp();
+  const { user, subscribeToPackage } = useApp();
 
   const handleChoosePlan = () => {
+    subscribeToPackage(pkg.id);
     if (user) {
       router.push('/dashboard/subscription');
     } else {

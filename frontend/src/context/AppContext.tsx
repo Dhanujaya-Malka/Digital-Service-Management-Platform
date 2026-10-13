@@ -16,6 +16,7 @@ interface AppContextType {
   logout: () => void;
 
   subscription: Subscription | null;
+  subscribeToPackage: (packageId: string) => void;
   usage: Usage | null;
   vpnConfig: VPNConfig | null;
 }
@@ -92,13 +93,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('vpn_packages', JSON.stringify(updated));
   };
 
+  const subscribeToPackage = (packageId: string) => {
+    const newSub: Subscription = {
+      id: `sub-${Date.now()}`,
+      packageId: packageId,
+      status: 'active',
+      startDate: new Date().toISOString(),
+      expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    setSubscription(newSub);
+    localStorage.setItem('vpn_subscription', JSON.stringify(newSub));
+  };
+
   const login = (userData: User) => {
     setUser(userData);
     localStorage.setItem('vpn_user', JSON.stringify(userData));
     // Set mock data matching screenshot
     setSubscription({
       id: 'asyfckrhgfxsy1oc50xt',
-      packageId: 'slt-zoom-fiber',
+      packageId: 'standard-300gb',
       status: 'active',
       startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       expiryDate: new Date(Date.now() + 396 * 24 * 60 * 60 * 1000).toISOString(),
@@ -132,6 +145,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         subscription,
+        subscribeToPackage,
         usage,
         vpnConfig,
       }}

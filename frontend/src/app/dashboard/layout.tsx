@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
-import { Shield, LayoutDashboard, Server, Activity, CreditCard, User as UserIcon, LogOut } from 'lucide-react';
+import { Shield, ShieldAlert, LayoutDashboard, Server, Activity, CreditCard, User as UserIcon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -16,8 +16,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!isInitialized) return;
     if (!user) {
       router.push('/login');
-    } else if (user.role === 'admin') {
-      router.push('/admin/packages');
     }
   }, [user, isInitialized, router]);
 
@@ -29,7 +27,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!user || user.role === 'admin') return null;
+  if (!user) return null;
+
+  const cleanCurrentPath = pathname ? pathname.replace(/\/$/, '') : '';
 
   const sidebarLinks = [
     { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
@@ -37,6 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Usage', path: '/dashboard/usage', icon: Activity },
     { name: 'Subscription', path: '/dashboard/subscription', icon: CreditCard },
     { name: 'Profile', path: '/dashboard/profile', icon: UserIcon },
+    ...(user.role === 'admin' ? [{ name: 'Admin Portal', path: '/admin/packages', icon: ShieldAlert }] : []),
   ];
 
   return (
@@ -52,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
           {sidebarLinks.map((link) => {
-            const isActive = pathname === link.path;
+            const isActive = cleanCurrentPath === link.path.replace(/\/$/, '');
             return (
               <Link key={link.path} href={link.path}>
                 <div className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${

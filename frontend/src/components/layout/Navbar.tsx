@@ -56,6 +56,14 @@ export default function Navbar() {
             <ModeToggle />
             {user ? (
               <>
+                {user.role === 'admin' && (
+                  <Link href="/admin/packages">
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive border-destructive/40 hover:bg-destructive/10">
+                      <Shield className="h-3.5 w-3.5" />
+                      Admin Portal
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/dashboard">
                   <Button variant="ghost" className="gap-2">
                     <User className="h-4 w-4" />
@@ -110,6 +118,14 @@ export default function Navbar() {
             <div className="h-px w-full bg-border my-2" />
             {user ? (
               <div className="flex flex-col gap-2">
+                {user.role === 'admin' && (
+                  <Link href="/admin/packages" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full justify-start gap-2 text-destructive border-destructive/40">
+                      <Shield className="h-4 w-4" />
+                      Admin Portal
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button variant="outline" className="w-full justify-start gap-2">
                     <User className="h-4 w-4" />
