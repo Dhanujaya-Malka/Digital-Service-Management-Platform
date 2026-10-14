@@ -33,6 +33,7 @@ function NetworkSelectionContent() {
   const searchParams = useSearchParams();
   const { 
     packages, 
+    user,
     selectedPlan, 
     selectPlan, 
     selectedNetwork, 
@@ -106,6 +107,10 @@ function NetworkSelectionContent() {
 
   const handleContinue = () => {
     if (!chosenNetworkPkg || !activePlan) return;
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/checkout?plan=${activePlan.id}&networkPackage=${chosenNetworkPkg.id}&network=${chosenNetworkPkg.isp}`)}`);
+      return;
+    }
     router.push(`/checkout?plan=${activePlan.id}&networkPackage=${chosenNetworkPkg.id}&network=${chosenNetworkPkg.isp}`);
   };
 
@@ -113,6 +118,10 @@ function NetworkSelectionContent() {
     if (e) e.stopPropagation();
     handleSelectPackage(pkg);
     if (!activePlan) return;
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/checkout?plan=${activePlan.id}&networkPackage=${pkg.id}&network=${pkg.isp}`)}`);
+      return;
+    }
     router.push(`/checkout?plan=${activePlan.id}&networkPackage=${pkg.id}&network=${pkg.isp}`);
   };
 

@@ -302,7 +302,7 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
                     cardRefs.current[idx] = el;
                   }}
                   onClick={() => handleCardClick(pkg.id)}
-                  className={`group relative w-[280px] sm:w-[320px] md:w-[340px] shrink-0 cursor-pointer rounded-2xl p-5 border backdrop-blur-xl transition-all duration-300 ease-out transform ${
+                  className={`group relative w-[280px] sm:w-[320px] md:w-[340px] shrink-0 cursor-pointer rounded-2xl overflow-hidden p-5 border backdrop-blur-xl transition-all duration-300 ease-out transform ${
                     isMobile ? 'snap-center' : ''
                   } ${
                     isCenter
@@ -311,7 +311,7 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
                   }`}
                 >
                   {/* Subtle Top Glow border */}
-                  <div className={`absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl bg-gradient-to-r ${
+                  <div className={`absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r pointer-events-none ${
                     isCenter 
                       ? 'from-primary via-purple-500 to-blue-500 opacity-100' 
                       : 'from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100'

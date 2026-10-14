@@ -85,6 +85,18 @@ function CheckoutContent() {
   const [formError, setFormError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
+  // Ensure user is authenticated to access checkout
+  useEffect(() => {
+    if (!user) {
+      const currentQuery = searchParams.toString();
+      const redirectPath = currentQuery ? `/checkout?${currentQuery}` : '/checkout';
+      router.push(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+    } else {
+      if (user.name && !customerName) setCustomerName(user.name);
+      if (user.email && !customerEmail) setCustomerEmail(user.email);
+    }
+  }, [user, searchParams, router]);
+
   // Sync plan & network & network package from URL query params or AppContext
   useEffect(() => {
     const planParam = searchParams.get('plan');

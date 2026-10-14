@@ -14,10 +14,14 @@ interface PricingCardProps {
 
 export default function PricingCard({ pkg }: PricingCardProps) {
   const router = useRouter();
-  const { selectPlan } = useApp();
+  const { user, selectPlan } = useApp();
 
   const handleChoosePlan = () => {
     selectPlan(pkg);
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/checkout/network?plan=${pkg.id}`)}`);
+      return;
+    }
     router.push(`/checkout/network?plan=${pkg.id}`);
   };
 
@@ -285,6 +289,16 @@ export default function PricingCard({ pkg }: PricingCardProps) {
 
               <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg text-xs text-emerald-300">
                 🔒 <strong>Zero Logs Guarantee:</strong> Your connection is protected with end-to-end military encryption.
+              </div>
+
+              <div className="pt-2">
+                <Button 
+                  className="w-full h-11 text-xs sm:text-sm font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                  onClick={handleChoosePlan}
+                >
+                  <span>Choose This Plan</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           </DialogContent>
