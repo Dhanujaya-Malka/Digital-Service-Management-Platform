@@ -36,6 +36,7 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [maxScrollDistance, setMaxScrollDistance] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Filter packages by active category tab
   const filteredPackages = selectedCategory === 'all'
@@ -50,7 +51,7 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
     { id: 'ultimate', label: 'Ultimate', count: packages.filter(p => p.category === 'ultimate').length },
   ];
 
-  // Calculate track width and maximum scroll distance
+  // Calculate track width and maximum scroll distance for desktop pinned carousel
   const calculateScrollLimits = useCallback(() => {
     if (!trackRef.current) return;
     const track = trackRef.current;
@@ -64,18 +65,22 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
 
   useEffect(() => {
     setIsMounted(true);
-    calculateScrollLimits();
-
     const handleResize = () => {
-      calculateScrollLimits();
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        calculateScrollLimits();
+      }
     };
 
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [calculateScrollLimits, filteredPackages]);
 
-  // Window Scroll listener to drive the horizontal track translation
+  // Desktop Window Scroll listener to drive the horizontal track translation
   useEffect(() => {
+    if (isMobile) return;
     let ticking = false;
 
     const handleWindowScroll = () => {
@@ -125,16 +130,58 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
     handleWindowScroll(); // Initial check
 
     return () => window.removeEventListener('scroll', handleWindowScroll);
-  }, [maxScrollDistance, filteredPackages]);
+  }, [isMobile, maxScrollDistance, filteredPackages]);
+
+  // Mobile horizontal touch scroll listener
+  const handleMobileTrackScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!isMobile) return;
+    const container = e.currentTarget;
+    const containerRect = container.getBoundingClientRect();
+    const containerCenter = containerRect.left + containerRect.width / 2;
+
+    let closestIdx = 0;
+    let minDistance = Infinity;
+
+    cardRefs.current.forEach((el, idx) => {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cardCenter = rect.left + rect.width / 2;
+      const dist = Math.abs(containerCenter - cardCenter);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIdx = idx;
+      }
+    });
+
+    setActiveCardIndex(closestIdx);
+    if (filteredPackages.length > 1) {
+      setScrollProgress(closestIdx / (filteredPackages.length - 1));
+    }
+  };
 
   // Card click navigates to pricing page with focus
   const handleCardClick = (pkgId: string) => {
     router.push(`/pricing?plan=${pkgId}`);
   };
 
-  // Arrow navigation: scrolls window to center previous/next card
+  // Arrow / Dot navigation: scrolls to center target card
   const handleNavigateCard = (index: number) => {
-    if (!sectionRef.current || index < 0 || index >= filteredPackages.length) return;
+    if (index < 0 || index >= filteredPackages.length) return;
+    setActiveCardIndex(index);
+
+    if (isMobile) {
+      const cardEl = cardRefs.current[index];
+      if (cardEl) {
+        cardEl.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest',
+        });
+      }
+      return;
+    }
+
+    if (!sectionRef.current) return;
     const totalScrollableDistance = sectionRef.current.offsetHeight - window.innerHeight;
     const progressPerCard = filteredPackages.length > 1 ? 1 / (filteredPackages.length - 1) : 0;
     const targetProgress = index * progressPerCard;
@@ -146,19 +193,25 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
     });
   };
 
-  // Outer container height dictates how long the user scrolls through cards
-  // ~250vh - 350vh gives a very natural, controlled scroll speed
-  const dynamicContainerHeight = `${Math.max(200, filteredPackages.length * 50 + 120)}vh`;
+  // On desktop, height determines how long user scrolls through cards.
+  // On mobile, height is natural auto so vertical page scroll is NEVER hijacked!
+  const containerHeight = isMobile 
+    ? 'auto' 
+    : `${Math.max(200, filteredPackages.length * 50 + 120)}vh`;
 
   return (
     <div
       ref={sectionRef}
-      className="relative w-full bg-background/60"
-      style={{ height: dynamicContainerHeight }}
+      className={`relative w-full bg-background/60 ${isMobile ? 'py-10' : ''}`}
+      style={{ height: containerHeight }}
       id="packages-carousel-section"
     >
-      {/* Sticky Fullscreen Container: Pins in place while cards scroll */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-between py-6 md:py-8 z-30">
+      {/* Container: Pins in place on desktop, flows naturally on mobile */}
+      <div className={
+        isMobile
+          ? "relative h-auto w-full flex flex-col justify-between py-4 z-10"
+          : "sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-between py-6 md:py-8 z-30"
+      }>
         
         {/* Background glow behind active cards */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-[320px] bg-primary/10 blur-[150px] rounded-full pointer-events-none" />
@@ -174,7 +227,9 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
             Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-blue-400">V2Ray Packages</span>
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-lg mx-auto">
-            Scroll down to browse all packages. Click any plan to view complete specs and subscribe.
+            {isMobile 
+              ? "Swipe horizontally to browse packages. Click any plan to select." 
+              : "Scroll down to browse all packages. Click any plan to view complete specs and subscribe."}
           </p>
 
           {/* Category Tabs */}
@@ -188,6 +243,9 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
                     onClick={() => {
                       setSelectedCategory(cat.id);
                       setActiveCardIndex(0);
+                      if (isMobile && cardRefs.current[0]) {
+                        cardRefs.current[0]?.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+                      }
                     }}
                     className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                       isActive 
@@ -215,18 +273,23 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
           </div>
         </div>
 
-        {/* 2. Horizontally Translating Cards Track */}
+        {/* 2. Horizontally Translating / Swiping Cards Track */}
         <div className="relative flex-1 flex items-center my-auto overflow-hidden">
           
-          {/* Subtle Left & Right edge blur masks */}
-          <div className="absolute left-0 top-0 bottom-0 w-12 md:w-28 bg-gradient-to-r from-background via-background/60 to-transparent z-20 pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-12 md:w-28 bg-gradient-to-l from-background via-background/60 to-transparent z-20 pointer-events-none" />
+          {/* Edge blur masks on desktop */}
+          <div className="hidden md:block absolute left-0 top-0 bottom-0 w-28 bg-gradient-to-r from-background via-background/60 to-transparent z-20 pointer-events-none" />
+          <div className="hidden md:block absolute right-0 top-0 bottom-0 w-28 bg-gradient-to-l from-background via-background/60 to-transparent z-20 pointer-events-none" />
 
           <div
             ref={trackRef}
-            className="flex items-center gap-5 sm:gap-6 will-change-transform transition-transform duration-100 ease-out pl-[calc(50vw-150px)] sm:pl-[calc(50vw-175px)] pr-24"
+            onScroll={handleMobileTrackScroll}
+            className={
+              isMobile
+                ? "flex items-center gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none py-6 pl-[calc(50vw-140px)] pr-[calc(50vw-140px)] touch-pan-x w-full"
+                : "flex items-center gap-5 sm:gap-6 will-change-transform transition-transform duration-100 ease-out pl-[calc(50vw-150px)] sm:pl-[calc(50vw-175px)] pr-24"
+            }
             style={{
-              transform: `translate3d(-${scrollProgress * maxScrollDistance}px, 0, 0)`,
+              transform: isMobile ? 'none' : `translate3d(-${scrollProgress * maxScrollDistance}px, 0, 0)`,
             }}
           >
             {filteredPackages.map((pkg, idx) => {
@@ -240,8 +303,10 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
                   }}
                   onClick={() => handleCardClick(pkg.id)}
                   className={`group relative w-[280px] sm:w-[320px] md:w-[340px] shrink-0 cursor-pointer rounded-2xl p-5 border backdrop-blur-xl transition-all duration-300 ease-out transform ${
+                    isMobile ? 'snap-center' : ''
+                  } ${
                     isCenter
-                      ? 'bg-card/95 border-primary ring-2 ring-primary/60 scale-100 sm:scale-105 shadow-2xl shadow-primary/20 z-10'
+                      ? 'bg-card/95 border-primary ring-2 ring-primary/60 scale-100 sm:scale-105 shadow-2xl shadow-primary/20 z-10 opacity-100'
                       : 'bg-card/65 border-border/70 hover:border-primary/40 scale-90 sm:scale-95 opacity-55 hover:opacity-85 z-0'
                   }`}
                 >
@@ -288,7 +353,7 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
                     )}
                   </div>
 
-                  {/* Concise Specs Grid (Indetail adu karala) */}
+                  {/* Concise Specs Grid */}
                   <div className="mt-4 p-3 rounded-xl bg-muted/30 border border-border/40 space-y-2 text-xs">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
@@ -322,7 +387,7 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
                     <SriLankanIspStrip size={14} />
                   </div>
 
-                  {/* Click to View / Activate CTA banner (Replaced Choose Plan button) */}
+                  {/* Click to View / Activate CTA banner */}
                   <div className="mt-3.5 pt-3 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-primary group-hover:text-primary/90">
                     <span className="text-[11px]">View full details & select</span>
                     <div className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
@@ -338,20 +403,39 @@ export default function StickyPackageCarousel({ packages }: StickyPackageCarouse
 
         </div>
 
-        {/* 3. Bottom Controls & Scroll Indicator */}
+        {/* 3. Bottom Controls & Indicators */}
         <div className="container mx-auto px-4 md:px-6 z-10 shrink-0">
+          {/* Dot Indicators */}
+          <div className="flex items-center justify-center gap-1.5 pb-2">
+            {filteredPackages.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleNavigateCard(i)}
+                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                  i === activeCardIndex
+                    ? 'w-6 bg-primary shadow-sm shadow-primary/40'
+                    : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/60'
+                }`}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 max-w-4xl mx-auto pt-2 border-t border-border/40">
             
             {/* Scroll Hint */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
               <span>
-                Scroll down to glide through plans ({activeCardIndex + 1} of {filteredPackages.length})
+                {isMobile 
+                  ? `Swipe horizontally (${activeCardIndex + 1} of ${filteredPackages.length})` 
+                  : `Scroll down to glide through plans (${activeCardIndex + 1} of ${filteredPackages.length})`}
               </span>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-48 sm:w-64 h-1.5 bg-muted rounded-full overflow-hidden">
+            {/* Progress Bar (Desktop) */}
+            <div className="hidden sm:block w-48 sm:w-64 h-1.5 bg-muted rounded-full overflow-hidden">
               <div 
                 className="h-full bg-primary rounded-full transition-all duration-75"
                 style={{ width: `${Math.max(5, scrollProgress * 100)}%` }}

@@ -109,6 +109,13 @@ function NetworkSelectionContent() {
     router.push(`/checkout?plan=${activePlan.id}&networkPackage=${chosenNetworkPkg.id}&network=${chosenNetworkPkg.isp}`);
   };
 
+  const handleDirectContinue = (pkg: NetworkPackage, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    handleSelectPackage(pkg);
+    if (!activePlan) return;
+    router.push(`/checkout?plan=${activePlan.id}&networkPackage=${pkg.id}&network=${pkg.isp}`);
+  };
+
   // Filter packages based on active ISP tab
   const filteredPackages = useMemo(() => {
     if (selectedIspTab === 'all') {
@@ -304,6 +311,13 @@ function NetworkSelectionContent() {
                     </div>
 
                     <div className="flex items-center gap-1.5">
+                      {isSelected && (
+                        <Badge className="text-[10px] bg-primary/20 hover:bg-primary/20 text-primary border-primary/40 font-bold px-2 py-0.5 gap-1 shadow-sm">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Selected</span>
+                        </Badge>
+                      )}
+
                       {pkg.popular && (
                         <Badge variant="secondary" className="text-[10px] bg-amber-500/15 text-amber-400 border-amber-500/30">
                           Popular
@@ -366,20 +380,28 @@ function NetworkSelectionContent() {
                     <span>Ping: {pkg.latency || '30ms - 40ms'}</span>
                   </div>
 
-                  <div className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
-                    isSelected 
-                      ? 'bg-primary text-primary-foreground shadow-md' 
-                      : 'bg-muted/70 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
-                  }`}>
-                    {isSelected ? (
-                      <>
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        <span>Selected</span>
-                      </>
-                    ) : (
-                      <span>Select This</span>
-                    )}
-                  </div>
+                  {isSelected ? (
+                    <Button
+                      size="sm"
+                      onClick={(e) => handleDirectContinue(pkg, e)}
+                      className="h-8 px-4 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/25 gap-1.5 cursor-pointer hover:scale-105 transition-all"
+                    >
+                      <span>Continue</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectPackage(pkg);
+                      }}
+                      className="h-8 px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 border-border/70 cursor-pointer"
+                    >
+                      <span>Select Route</span>
+                    </Button>
+                  )}
                 </div>
               </Card>
             );
