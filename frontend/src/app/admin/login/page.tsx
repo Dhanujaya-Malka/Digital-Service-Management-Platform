@@ -11,7 +11,7 @@ import { useApp } from '@/context/AppContext';
 export default function AdminLoginPage() {
   const router = useRouter();
   const { user, login } = useApp();
-  const [email, setEmail] = useState('admin@securevpn.com');
+  const [email, setEmail] = useState('admin@v2nexus.com');
   const [password, setPassword] = useState('admin123');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -20,7 +20,7 @@ export default function AdminLoginPage() {
     login({
       id: 'admin-1',
       name: 'System Admin',
-      email: targetEmail || 'admin@securevpn.com',
+      email: targetEmail || 'admin@v2nexus.com',
       role: 'admin',
     });
     // Navigate immediately to package manager
@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
             Admin Portal
           </h2>
           <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
-            Administrative management access for SecureVPN.
+            Administrative management access for V2Nexus.
           </p>
         </div>
 
@@ -59,7 +59,7 @@ export default function AdminLoginPage() {
             type="button"
             variant="destructive"
             className="w-full h-11 font-bold text-sm shadow-md gap-2"
-            onClick={() => performLogin('admin@securevpn.com')}
+            onClick={() => performLogin('admin@v2nexus.com')}
             disabled={isLoading}
           >
             <span>{isLoading ? 'Accessing...' : 'Enter Admin Panel Now'}</span>
@@ -84,7 +84,7 @@ export default function AdminLoginPage() {
                 type="email" 
                 required 
                 className="mt-1 h-11 text-sm bg-muted/30" 
-                placeholder="admin@securevpn.com"
+                placeholder="admin@v2nexus.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />

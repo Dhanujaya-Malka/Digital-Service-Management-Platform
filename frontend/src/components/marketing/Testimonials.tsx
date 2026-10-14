@@ -6,7 +6,7 @@ export default function Testimonials() {
     {
       name: 'Kamal Perera',
       role: 'Freelancer',
-      content: 'SecureVPN has completely changed how I work. The speeds are incredible and the connection never drops.',
+      content: 'V2Nexus has completely changed how I work. The speeds are incredible and the connection never drops.',
       rating: 5,
     },
     {

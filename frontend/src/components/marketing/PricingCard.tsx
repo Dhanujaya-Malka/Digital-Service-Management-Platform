@@ -14,15 +14,11 @@ interface PricingCardProps {
 
 export default function PricingCard({ pkg }: PricingCardProps) {
   const router = useRouter();
-  const { user, subscribeToPackage } = useApp();
+  const { selectPlan } = useApp();
 
   const handleChoosePlan = () => {
-    subscribeToPackage(pkg.id);
-    if (user) {
-      router.push('/dashboard/subscription');
-    } else {
-      router.push('/register');
-    }
+    selectPlan(pkg);
+    router.push(`/checkout/network?plan=${pkg.id}`);
   };
 
   // Provider badge styling based on category

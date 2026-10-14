@@ -1,15 +1,105 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import PricingCard from '@/components/marketing/PricingCard';
-import { HelpCircle, Check, ArrowRight, Activity, Wifi } from 'lucide-react';
+import { HelpCircle, Check, ArrowRight, ArrowDown, Activity, Wifi, Sparkles, CheckCircle2 } from 'lucide-react';
 import { getIspLogo } from '@/components/marketing/IspLogos';
+import { Button } from '@/components/ui/button';
 
-export default function PricingPage() {
-  const { packages } = useApp();
+function PricingContent() {
+  const searchParams = useSearchParams();
+  const { packages, isInitialized } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [focusedPlanId, setFocusedPlanId] = useState<string | null>(null);
+
+  // Smooth centering function
+  const centerPackageOnScreen = useCallback((planId: string) => {
+    const el = document.getElementById(`pkg-${planId}`);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const viewportHeight = window.innerHeight;
+      const cardHeight = el.offsetHeight;
+      const offset = Math.max(90, (viewportHeight - cardHeight) / 2);
+      const targetY = Math.max(0, Math.round(rect.top + scrollTop - offset));
+
+      window.scrollTo({
+        top: targetY,
+        behavior: 'smooth',
+      });
+      return true;
+    }
+    return false;
+  }, []);
+
+  // Sync with searchParams on mount & smoothly center the target package
+  useEffect(() => {
+    const planParam = searchParams.get('plan') || searchParams.get('package');
+    if (!planParam) return;
+
+    setFocusedPlanId(planParam);
+    // Keep 'all' category so all plans are in the DOM and visible
+    setSelectedCategory('all');
+
+    // Prevent browser from restoring stale scroll positions from previous page
+    if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+
+    let isDone = false;
+    let userInteracted = false;
+
+    const onUserInteract = () => {
+      userInteracted = true;
+    };
+
+    window.addEventListener('wheel', onUserInteract, { passive: true });
+    window.addEventListener('touchmove', onUserInteract, { passive: true });
+
+    const attemptCenter = () => {
+      if (isDone || userInteracted) return;
+      const el = document.getElementById(`pkg-${planParam}`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const viewportHeight = window.innerHeight;
+        const cardHeight = el.offsetHeight;
+        const offset = Math.max(90, (viewportHeight - cardHeight) / 2);
+        const targetY = Math.max(0, Math.round(rect.top + scrollTop - offset));
+
+        // If viewport is already accurately centered near target (within 30px), mark done
+        if (Math.abs(scrollTop - targetY) <= 30) {
+          isDone = true;
+          return;
+        }
+
+        window.scrollTo({
+          top: targetY,
+          behavior: 'smooth',
+        });
+      }
+    };
+
+    // Staggered attempts to guarantee smooth centering
+    // Handles Next.js route transitions, client hydration, and layout rendering
+    const timers = [
+      setTimeout(attemptCenter, 100),
+      setTimeout(attemptCenter, 300),
+      setTimeout(attemptCenter, 650),
+      setTimeout(attemptCenter, 1100),
+    ];
+
+    return () => {
+      timers.forEach(clearTimeout);
+      window.removeEventListener('wheel', onUserInteract);
+      window.removeEventListener('touchmove', onUserInteract);
+    };
+  }, [searchParams, packages]);
+
+  const focusedPkg = packages.find((p) => p.id === focusedPlanId);
 
   const baseCategories = [
     { id: 'all', label: 'All Plans', count: packages.length },
@@ -44,8 +134,8 @@ export default function PricingPage() {
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         
-        {/* Header matching Screenshot 2 */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto mb-10">
           {/* Operational Status Pill */}
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-400 mb-6 shadow-sm">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -69,7 +159,35 @@ export default function PricingPage() {
           </Link>
         </div>
 
-        {/* ISP Filter Tabs Bar matching Screenshot 2 */}
+        {/* Floating Focus Announcement Banner if plan selected from Home */}
+        {focusedPkg && (
+          <div className="mb-8 max-w-xl mx-auto p-3.5 rounded-2xl bg-primary/10 border border-primary/30 backdrop-blur-md flex items-center justify-between gap-3 text-xs shadow-lg shadow-primary/10 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-primary/20 text-primary shrink-0">
+                <Sparkles className="h-4 w-4 animate-pulse" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-primary block">
+                  Focused Package
+                </span>
+                <span className="font-bold text-foreground text-sm">
+                  {focusedPkg.name} • Rs. {focusedPkg.price}/mo
+                </span>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => centerPackageOnScreen(focusedPkg.id)}
+              className="h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shrink-0 cursor-pointer shadow-sm"
+            >
+              <span>Scroll to Plan</span>
+              <ArrowDown className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+
+        {/* ISP Filter Tabs Bar */}
         <div className="flex justify-center mb-12">
           <div className="inline-flex flex-wrap items-center justify-center gap-2 p-1.5 bg-muted/60 backdrop-blur-md rounded-2xl border border-border/60 max-w-full">
             {categories.map((cat) => {
@@ -77,8 +195,10 @@ export default function PricingPage() {
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                  }}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                     isActive 
                       ? 'bg-card text-foreground shadow-md border border-primary/40 text-primary' 
                       : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
@@ -103,11 +223,31 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Package Grid */}
+        {/* Package Grid with Prominent Focus Glow */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mb-24">
-          {filteredPackages.map((pkg) => (
-            <PricingCard key={pkg.id} pkg={pkg} />
-          ))}
+          {filteredPackages.map((pkg) => {
+            const isFocused = focusedPlanId === pkg.id;
+            return (
+              <div
+                key={pkg.id}
+                id={`pkg-${pkg.id}`}
+                className={`relative transition-all duration-500 rounded-2xl scroll-mt-28 ${
+                  isFocused
+                    ? 'ring-4 ring-primary shadow-2xl shadow-primary/40 scale-[1.02] z-10'
+                    : ''
+                }`}
+              >
+                {/* Visual "Focused Plan" Badge when arriving from Home */}
+                {isFocused && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full shadow-md flex items-center gap-1 animate-bounce">
+                    <Sparkles className="h-3 w-3" />
+                    <span>Your Selected Plan</span>
+                  </div>
+                )}
+                <PricingCard pkg={pkg} />
+              </div>
+            );
+          })}
           {filteredPackages.length === 0 && (
             <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/20 rounded-2xl border border-dashed border-border">
               <p>No packages found in this category yet. Check back soon!</p>
@@ -174,5 +314,19 @@ export default function PricingPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      }
+    >
+      <PricingContent />
+    </Suspense>
   );
 }

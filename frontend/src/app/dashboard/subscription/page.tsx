@@ -66,7 +66,9 @@ export default function SubscriptionPage() {
                 </div>
                 
                 <div className="flex flex-col gap-3 w-full md:w-auto">
-                  <Button size="lg">Renew Subscription</Button>
+                  <Link href={`/checkout/network?plan=${activePackage.id}`}>
+                    <Button size="lg" className="w-full">Renew Subscription</Button>
+                  </Link>
                   <Link href="/pricing">
                     <Button variant="outline" className="w-full">Change Plan</Button>
                   </Link>

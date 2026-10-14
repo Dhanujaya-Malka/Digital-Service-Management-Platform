@@ -10,7 +10,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SecureVPN | Private Internet Without Compromise',
+  title: 'V2Nexus | Private Internet Without Compromise',
   description: 'Fast, secure, and private VPN service for all your devices.',
 };
 

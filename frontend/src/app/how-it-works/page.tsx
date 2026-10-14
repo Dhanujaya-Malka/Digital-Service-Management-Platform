@@ -9,7 +9,7 @@ export default function HowItWorksPage() {
             How it works
           </h1>
           <p className="text-xl text-muted-foreground">
-            Getting started with SecureVPN is incredibly simple. In just a few minutes, you can protect all your devices.
+            Getting started with V2Nexus is incredibly simple. In just a few minutes, you can protect all your devices.
           </p>
         </div>
 
@@ -65,7 +65,7 @@ export default function HowItWorksPage() {
           <h2 className="text-3xl font-bold mb-4">How does the Bypass actually work?</h2>
           <p className="text-muted-foreground leading-relaxed mb-6">
             When you activate a specific data package (like a Dialog/SLT Zoom plan), your ISP allows unlimited or extended access to those specific servers. 
-            SecureVPN uses advanced SNI (Server Name Indication) spoofing and WebSocket tunnels to disguise your normal internet traffic (like YouTube, TikTok, or downloads) to look exactly like Zoom traffic.
+            V2Nexus uses advanced SNI (Server Name Indication) spoofing and WebSocket tunnels to disguise your normal internet traffic (like YouTube, TikTok, or downloads) to look exactly like Zoom traffic.
           </p>
           <div className="bg-background p-6 rounded-xl border border-border text-left">
             <h3 className="font-semibold text-lg mb-2 text-foreground">Legal & Safety Guarantee</h3>

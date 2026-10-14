@@ -37,7 +37,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center">
           <Link href="/" className="flex items-center gap-2 font-bold text-2xl tracking-tight mb-2">
             <Shield className="h-8 w-8 text-primary" />
-            <span>SecureVPN</span>
+            <span>V2Nexus</span>
           </Link>
           <h2 className="mt-4 text-center text-2xl font-bold tracking-tight text-foreground">
             Sign in to your account
@@ -91,22 +91,6 @@ export default function LoginPage() {
             {isLoading ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
-
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-card px-2 text-muted-foreground">Admin Access</span>
-            </div>
-          </div>
-          <div className="mt-6 text-center">
-            <Link href="/admin/login" className="text-sm font-medium text-primary hover:underline">
-              Sign in as Administrator
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );

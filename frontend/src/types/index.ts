@@ -43,3 +43,91 @@ export interface VPNConfig {
   configuration: string; // actual config string or URL
   qrCode: string; // base64 or URL
 }
+
+export interface NetworkConfig {
+  id: string; // 'dialog' | 'hutch' | 'mobitel' | 'airtel' | 'slt'
+  name: string;
+  category: string;
+  shortDescription: string;
+  carrierBadge: string;
+  supportedProtocols: string[];
+  recommendedFor: string;
+  pingEstimate: string;
+  status: 'active' | 'maintenance' | 'coming_soon';
+  verified: boolean;
+}
+
+export interface NetworkPackage {
+  id: string;
+  name: string;
+  isp: 'slt' | 'dialog' | 'hutch' | 'airtel' | 'mobitel';
+  ispName: string;
+  status: 'active' | 'maintenance';
+  serverLocation: string; // e.g. 'SG SERVER'
+  validity: string; // e.g. '1 Month'
+  p2pTorrent: 'Allowed' | 'Restricted';
+  speedLimit: string; // e.g. 'No Speed Limit' or 'Speed Limited'
+  popular?: boolean;
+  features: string[];
+  supportedProtocols: string[];
+  latency?: string;
+  description?: string;
+}
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  discountType: 'gift_100' | 'percentage' | 'fixed';
+  value: number; // 100 for gift_100, percentage (e.g. 20%) or fixed Rs. (e.g. 50)
+  description: string;
+  durationDays?: number; // e.g. 7 days trial
+  createdAt: string;
+  expiryDate?: string; // ISO date string until which code can be used
+  maxUses: number; // default 1 for single-use gift cards
+  usedCount: number; // number of times used
+  isUsed: boolean; // true once usedCount >= maxUses
+  usedBy?: string[]; // emails / order IDs that redeemed it
+  minSpend?: number;
+  maxDiscount?: number;
+  isActive: boolean;
+}
+
+export type OrderStatus = 'pending_approval' | 'approved' | 'rejected';
+
+export interface Order {
+  id: string; // e.g. ORD-2026-0812
+  createdAt: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  telegramUsername?: string;
+  packageId: string;
+  packageName: string;
+  packagePrice: number;
+  dataQuota: string;
+  deviceLimit: string;
+  networkId: string;
+  networkName: string;
+  networkPackageId?: string;
+  networkPackageName?: string;
+  promoCode?: string;
+  discountAmount: number;
+  finalAmount: number;
+  paymentMethod: 'bank_transfer' | 'online_gateway';
+  slipFileName?: string;
+  slipFileSize?: number;
+  slipFileData?: string; // base64 data url for preview
+  bankReference?: string;
+  status: OrderStatus;
+  adminNotes?: string;
+  vpnProvisioned?: boolean;
+  vpnDetails?: VPNConfig;
+}
+
+export interface BankDetails {
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  branch: string;
+  instructions: string[];
+}

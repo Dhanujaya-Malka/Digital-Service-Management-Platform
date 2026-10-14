@@ -38,7 +38,7 @@ export default function RegisterPage() {
         <div className="flex flex-col items-center">
           <Link href="/" className="flex items-center gap-2 font-bold text-2xl tracking-tight mb-2">
             <Shield className="h-8 w-8 text-primary" />
-            <span>SecureVPN</span>
+            <span>V2Nexus</span>
           </Link>
           <h2 className="mt-4 text-center text-2xl font-bold tracking-tight text-foreground">
             Create an account

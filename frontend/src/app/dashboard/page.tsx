@@ -26,21 +26,24 @@ export default function DashboardOverview() {
   const { user, subscription, usage, vpnConfig, packages } = useApp();
   const [copied, setCopied] = useState(false);
 
-  const activePackage = packages.find(p => p.id === subscription?.packageId) || packages[0];
+  const hasSubscription = !!subscription;
+  const activePackage = hasSubscription 
+    ? packages.find((p) => p.id === subscription?.packageId) || packages[0] 
+    : null;
   
   // Calculate remaining days
-  const expiryDate = new Date(subscription?.expiryDate || Date.now() + 396 * 24 * 60 * 60 * 1000);
+  const expiryDate = subscription?.expiryDate ? new Date(subscription.expiryDate) : null;
   const today = new Date();
-  const diffTime = Math.max(0, expiryDate.getTime() - today.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const diffTime = expiryDate ? Math.max(0, expiryDate.getTime() - today.getTime()) : 0;
+  const diffDays = expiryDate ? Math.ceil(diffTime / (1000 * 60 * 60 * 24)) : 0;
 
-  // Usage numbers matching screenshot
-  const totalLimit = activePackage?.trafficLimit && activePackage.trafficLimit > 0 ? activePackage.trafficLimit : 1000;
-  const usedGB = usage?.total || 777.7;
-  const uploadGB = usage?.upload || 101.0;
-  const downloadGB = usage?.download || 676.7;
-  const remainingGB = Math.max(0, totalLimit - usedGB);
-  const usagePercent = Math.min(100, Math.round((usedGB / totalLimit) * 100));
+  // Real usage numbers
+  const totalLimit = activePackage?.trafficLimit && activePackage.trafficLimit > 0 ? activePackage.trafficLimit : 0;
+  const usedGB = usage?.total ?? 0.0;
+  const uploadGB = usage?.upload ?? 0.0;
+  const downloadGB = usage?.download ?? 0.0;
+  const remainingGB = totalLimit > 0 ? Math.max(0, totalLimit - usedGB) : 0.0;
+  const usagePercent = totalLimit > 0 ? Math.min(100, Math.round((usedGB / totalLimit) * 100)) : 0;
 
   const copySubscriptionId = () => {
     if (subscription?.id) {
@@ -53,7 +56,7 @@ export default function DashboardOverview() {
   // Circular gauge calculations (SVG)
   const radius = 64;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (usagePercent / 100) * circumference;
+  const strokeDashoffset = totalLimit > 0 ? circumference - (usagePercent / 100) * circumference : circumference;
 
   return (
     <div className="space-y-8">
@@ -68,12 +71,21 @@ export default function DashboardOverview() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/vpn">
-            <Button size="sm" className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl">
-              <QrCode className="h-4 w-4" />
-              <span>Get V2Ray Config</span>
-            </Button>
-          </Link>
+          {hasSubscription ? (
+            <Link href="/dashboard/vpn">
+              <Button size="sm" className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-xs">
+                <QrCode className="h-4 w-4" />
+                <span>Get V2Ray Config</span>
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/pricing">
+              <Button size="sm" className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl text-xs">
+                <Zap className="h-4 w-4" />
+                <span>Browse Plans</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -83,69 +95,97 @@ export default function DashboardOverview() {
         {/* LEFT COLUMN (2 Cols wide on desktop) */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Top Card: Active Subscription matching Screenshot 1 */}
+          {/* Top Card: Active Subscription / Clean New User State */}
           <Card className="bg-card/90 border-border/60 rounded-2xl p-6 relative overflow-hidden backdrop-blur-md shadow-lg">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               
               {/* Left Details */}
               <div className="space-y-4 flex-1">
                 {/* Status Pill */}
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>ACTIVE</span>
-                </div>
+                {hasSubscription ? (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>ACTIVE</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border">
+                    <span className="h-2 w-2 rounded-full bg-muted-foreground" />
+                    <span>NO ACTIVE PLAN</span>
+                  </div>
+                )}
 
                 {/* Service Name */}
                 <div>
                   <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
-                    securevpn.lk / {activePackage?.name || 'SLT ZOOM Bypass'}
+                    {hasSubscription ? `v2nexus.lk / ${activePackage?.name || 'V2Ray Service'}` : 'V2Nexus High-Speed VPN'}
                   </h2>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Your subscription is active and working normally.
+                    {hasSubscription 
+                      ? 'Your subscription is active and working normally.' 
+                      : 'You do not have an active package. Choose a plan or redeem a gift trial to get connected.'}
                   </p>
                 </div>
 
                 {/* Key-Value Details */}
                 <div className="space-y-2.5 pt-2 text-xs">
                   {/* Subscription ID */}
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <span className="text-foreground/70 font-mono text-sm font-bold w-4 text-center">#</span>
-                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">SUBSCRIPTION ID</span>
-                    <span className="font-mono text-foreground font-medium bg-muted/60 px-2 py-0.5 rounded border border-border/40 text-[11px] truncate max-w-[150px] sm:max-w-none">
-                      {subscription?.id || 'asyfckrhgfxsy1oc50xt'}
-                    </span>
-                    <button 
-                      onClick={copySubscriptionId}
-                      className="p-1 hover:text-foreground transition-colors text-muted-foreground"
-                      title="Copy Subscription ID"
-                    >
-                      {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                    </button>
-                  </div>
+                  {hasSubscription && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <span className="text-foreground/70 font-mono text-sm font-bold w-4 text-center">#</span>
+                      <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">SUBSCRIPTION ID</span>
+                      <span className="font-mono text-foreground font-medium bg-muted/60 px-2 py-0.5 rounded border border-border/40 text-[11px] truncate max-w-[150px] sm:max-w-none">
+                        {subscription.id}
+                      </span>
+                      <button 
+                        onClick={copySubscriptionId}
+                        className="p-1 hover:text-foreground transition-colors text-muted-foreground"
+                        title="Copy Subscription ID"
+                      >
+                        {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Expires On */}
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <Calendar className="h-4 w-4 text-primary shrink-0" />
                     <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">EXPIRES ON</span>
                     <span className="font-medium text-foreground">
-                      {expiryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {expiryDate ? expiryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No Active Plan'}
                     </span>
-                    <span className="text-[10px] font-semibold bg-primary/15 text-primary px-2 py-0.5 rounded-full border border-primary/20">
-                      {diffDays} days left
-                    </span>
+                    {hasSubscription && (
+                      <span className="text-[10px] font-semibold bg-primary/15 text-primary px-2 py-0.5 rounded-full border border-primary/20">
+                        {diffDays} days left
+                      </span>
+                    )}
                   </div>
 
-                  {/* Last Online */}
+                  {/* Status */}
                   <div className="flex items-center gap-3 text-muted-foreground">
-                    <Clock className="h-4 w-4 text-emerald-400 shrink-0" />
-                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">LAST ONLINE</span>
-                    <span className="font-medium text-foreground">Connected Now</span>
-                    <span className="text-[10px] text-emerald-400 font-medium">● Singapore SG-01</span>
+                    <Clock className={`h-4 w-4 shrink-0 ${hasSubscription ? 'text-emerald-400' : 'text-muted-foreground'}`} />
+                    <span className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground/80">STATUS</span>
+                    <span className="font-medium text-foreground">
+                      {hasSubscription ? 'Ready to Connect' : 'Inactive (Get Plan)'}
+                    </span>
+                    {hasSubscription && (
+                      <span className="text-[10px] text-emerald-400 font-medium">● Singapore SG-01</span>
+                    )}
                   </div>
                 </div>
+
+                {!hasSubscription && (
+                  <div className="pt-2">
+                    <Link href="/pricing">
+                      <Button size="sm" className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs">
+                        <span>Browse V2Ray Plans</span>
+                        <Zap className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
 
-              {/* Right: Circular Progress Meter matching Screenshot 1 */}
+              {/* Right: Circular Progress Meter */}
               <div className="flex flex-col items-center justify-center shrink-0 p-3 bg-muted/20 rounded-2xl border border-border/40">
                 <div className="relative flex items-center justify-center">
                   <svg className="w-36 h-36 transform -rotate-90">
@@ -177,7 +217,7 @@ export default function DashboardOverview() {
                   <div className="absolute flex flex-col items-center text-center">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">USED</span>
                     <span className="text-xl font-black text-foreground">{usedGB.toFixed(1)} GB</span>
-                    <span className="text-[10px] text-muted-foreground">of {totalLimit} GB</span>
+                    <span className="text-[10px] text-muted-foreground">of {totalLimit > 0 ? `${totalLimit} GB` : '0 GB'}</span>
                   </div>
                 </div>
                 <div className="mt-2 text-xs font-bold text-primary">

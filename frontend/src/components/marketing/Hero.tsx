@@ -59,7 +59,7 @@ export default function Hero() {
             </div>
             <div className="flex items-center gap-2">
               <Server className="h-4 w-4 text-blue-400" />
-              <span>Singapore 35ms Peering</span>
+              <span>Singapore Peering</span>
             </div>
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-amber-400" />
@@ -75,7 +75,7 @@ export default function Hero() {
               ))}
             </div>
             <span className="font-semibold text-foreground">4.9 / 5</span>
-            <span className="text-muted-foreground">• Trusted by 1,000+ Sri Lankan power users</span>
+            <span className="text-muted-foreground">• Trusted by {/*1,000+ */}Sri Lankan power users</span>
           </div>
 
           {/* Quick Metrics Strip */}
