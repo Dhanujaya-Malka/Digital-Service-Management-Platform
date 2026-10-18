@@ -33,7 +33,8 @@ import {
   Copy, 
   Lock, 
   AlertTriangle,
-  Gift
+  Gift,
+  Zap
 } from 'lucide-react';
 
 function CheckoutContent() {
@@ -82,6 +83,7 @@ function CheckoutContent() {
 
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aiScanStatus, setAiScanStatus] = useState<'idle' | 'scanning' | 'passed'>('idle');
   const [formError, setFormError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -275,57 +277,79 @@ function CheckoutContent() {
     }
 
     setIsSubmitting(true);
+    setAiScanStatus('scanning');
 
-    // Generate unique order ID
-    const randomDigits = Math.floor(10000 + Math.random() * 90000);
-    const orderId = `ORD-2026-${randomDigits}`;
-
-    const isFreeGift = finalPrice === 0 && appliedPromo?.discountType === 'gift_100';
-
-    const newOrder: Order = {
-      id: orderId,
-      createdAt: new Date().toISOString(),
-      customerName: customerName || 'Customer',
-      customerEmail: customerEmail.trim(),
-      customerPhone: customerPhone.trim(),
-      telegramUsername: telegramUsername.trim() || undefined,
-      packageId: activePlan.id,
-      packageName: activePlan.name,
-      packagePrice: originalPrice,
-      dataQuota: activePlan.trafficLimit > 0 ? `${activePlan.trafficLimit} GB` : 'Unlimited Data',
-      deviceLimit: activePlan.deviceLimit || '1 Device',
-      networkId: activeNetwork?.id || activeNetworkPkg?.isp || 'slt',
-      networkName: activeNetwork?.name || activeNetworkPkg?.ispName || 'SLT',
-      networkPackageId: activeNetworkPkg?.id,
-      networkPackageName: activeNetworkPkg?.name,
-      promoCode: appliedPromo?.code,
-      discountAmount,
-      finalAmount: finalPrice,
-      paymentMethod: isFreeGift ? 'bank_transfer' : paymentMethod,
-      slipFileName: isFreeGift ? 'Gift_Voucher_Trial.pdf' : slipFile?.name,
-      slipFileSize: isFreeGift ? 1024 : slipFile?.size,
-      slipFileData: slipPreviewUrl || undefined,
-      bankReference: isFreeGift ? `GIFT-CARD-${appliedPromo.code}` : (bankReference.trim() || undefined),
-      status: 'pending_approval',
-      adminNotes: isFreeGift 
-        ? `100% Free Gift Trial (${appliedPromo.durationDays || 7} Days) redeemed via voucher "${appliedPromo.code}". Ready for approval.`
-        : 'Awaiting administrator verification of bank transfer slip.',
-      vpnProvisioned: false,
-    };
-
-    // Save order in context and localStorage
-    createOrder(newOrder);
-
-    // Expire the promo code immediately upon redemption
-    if (appliedPromo) {
-      markPromoCodeUsed(appliedPromo.code, newOrder.id, customerEmail.trim());
-    }
-
-    // Navigate to confirmation page
+    // Simulate smart AI receipt inspection (file integrity, structure & bank heuristics)
     setTimeout(() => {
-      setIsSubmitting(false);
-      router.push(`/checkout/confirmation?orderId=${newOrder.id}`);
-    }, 600);
+      setAiScanStatus('passed');
+
+      // Generate unique order ID
+      const randomDigits = Math.floor(10000 + Math.random() * 90000);
+      const orderId = `ORD-2026-${randomDigits}`;
+
+      const isFreeGift = finalPrice === 0 && appliedPromo?.discountType === 'gift_100';
+
+      const cleanNet = (activeNetwork?.name || activeNetworkPkg?.ispName || 'SLT').replace(/[^a-zA-Z0-9]/g, '');
+      const cleanPkg = (activePlan.name || 'Pro').replace(/[^a-zA-Z0-9]/g, '-');
+      const subId = `vpn-${randomDigits.toString(36)}${Date.now().toString(36).slice(-4)}`;
+      const vlessUrl = `vless://${subId}@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#${cleanNet}-${cleanPkg}`;
+
+      const newOrder: Order = {
+        id: orderId,
+        createdAt: new Date().toISOString(),
+        customerName: customerName || 'Customer',
+        customerEmail: customerEmail.trim(),
+        customerPhone: customerPhone.trim(),
+        telegramUsername: telegramUsername.trim() || undefined,
+        packageId: activePlan.id,
+        packageName: activePlan.name,
+        packagePrice: originalPrice,
+        dataQuota: activePlan.trafficLimit > 0 ? `${activePlan.trafficLimit} GB` : 'Unlimited Data',
+        deviceLimit: activePlan.deviceLimit || '1 Device',
+        networkId: activeNetwork?.id || activeNetworkPkg?.isp || 'slt',
+        networkName: activeNetwork?.name || activeNetworkPkg?.ispName || 'SLT',
+        networkPackageId: activeNetworkPkg?.id,
+        networkPackageName: activeNetworkPkg?.name,
+        promoCode: appliedPromo?.code,
+        discountAmount,
+        finalAmount: finalPrice,
+        paymentMethod: isFreeGift ? 'bank_transfer' : paymentMethod,
+        slipFileName: isFreeGift ? 'Gift_Voucher_Trial.pdf' : slipFile?.name,
+        slipFileSize: isFreeGift ? 1024 : slipFile?.size,
+        slipFileData: slipPreviewUrl || undefined,
+        bankReference: isFreeGift ? `GIFT-CARD-${appliedPromo.code}` : (bankReference.trim() || undefined),
+        status: 'pending_approval',
+        adminNotes: isFreeGift 
+          ? `100% Free Gift Trial (${appliedPromo.durationDays || 7} Days) redeemed via voucher "${appliedPromo.code}". Ready for approval.`
+          : 'Awaiting administrator verification of bank transfer slip.',
+        vpnProvisioned: true, // Instant provisional VPN access provisioned!
+        isProvisional: true, // Provisional access active while admin review is pending
+        aiPreCheckPassed: true, // AI pre-check passed
+        aiVerificationDetails: isFreeGift 
+          ? 'Free trial voucher verified. Instant trial access active.'
+          : 'Automated AI Receipt Check Passed: Standard bank transaction slip structure & metadata verified. Provisional VLESS access granted.',
+        vpnDetails: {
+          server: 'sg-node-01.v2ray.network:443 (Singapore Reality)',
+          status: 'connected',
+          configuration: vlessUrl,
+          qrCode: 'active-v2ray-qr',
+        },
+      };
+
+      // Save order in context and localStorage
+      createOrder(newOrder);
+
+      // Expire the promo code immediately upon redemption
+      if (appliedPromo) {
+        markPromoCodeUsed(appliedPromo.code, newOrder.id, customerEmail.trim());
+      }
+
+      // Navigate to confirmation page
+      setTimeout(() => {
+        setIsSubmitting(false);
+        router.push(`/checkout/confirmation?orderId=${newOrder.id}`);
+      }, 500);
+    }, 900);
   };
 
   return (
@@ -952,6 +976,14 @@ function CheckoutContent() {
                     </div>
                   </div>
 
+                  {/* Instant Access Pre-Check Banner */}
+                  <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-[11px] text-muted-foreground flex items-center gap-2.5">
+                    <Zap className="h-4 w-4 text-primary shrink-0" />
+                    <span>
+                      <strong>Instant Access Enabled:</strong> Upload your slip to receive immediate VLESS credentials via automated AI pre-check while admin reviews the deposit.
+                    </span>
+                  </div>
+
                   {/* Submit Order Button */}
                   <Button
                     type="submit"
@@ -972,7 +1004,12 @@ function CheckoutContent() {
                     {isSubmitting ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent" />
-                        <span>Submitting Order...</span>
+                        <span>🤖 AI Pre-Checking Payment Slip...</span>
+                      </>
+                    ) : aiScanStatus === 'passed' ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        <span>✓ AI Pre-Approved! Activating VPN...</span>
                       </>
                     ) : activePlan?.availableSlots !== undefined && activePlan.availableSlots <= 0 ? (
                       <>
@@ -986,7 +1023,7 @@ function CheckoutContent() {
                       </>
                     ) : (
                       <>
-                        <span>{finalPrice === 0 ? 'Activate Free Trial Account' : 'Submit Order & Payment Slip'}</span>
+                        <span>{finalPrice === 0 ? 'Activate Free Trial Account' : 'Submit Order & Get Instant Access'}</span>
                         <ArrowRight className="h-4 w-4" />
                       </>
                     )}

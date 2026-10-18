@@ -488,6 +488,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOrders(updated);
     localStorage.setItem('vpn_orders', JSON.stringify(updated));
 
+    // If order has provisional or approved VPN details, activate VPN and subscription in AppContext
+    if (order.vpnProvisioned && order.vpnDetails) {
+      setVpnConfig(order.vpnDetails);
+      localStorage.setItem('vpn_config', JSON.stringify(order.vpnDetails));
+
+      const subId = order.vpnDetails.configuration?.split('@')?.[0]?.replace('vless://', '') || `sub-${Date.now()}`;
+      const newSub: Subscription = {
+        id: subId,
+        packageId: order.packageId,
+        status: 'active',
+        startDate: order.createdAt || new Date().toISOString(),
+        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      setSubscription(newSub);
+      localStorage.setItem('vpn_subscription', JSON.stringify(newSub));
+    }
+
     // Decrement available slots in the database and state
     const pkg = packages.find((p) => p.id === order.packageId);
     if (pkg && pkg.availableSlots !== undefined && pkg.availableSlots > 0) {
@@ -505,38 +522,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     let updatedVpnDetails: VPNConfig | undefined = targetOrder.vpnDetails;
     let vpnProvisioned = targetOrder.vpnProvisioned || false;
+    let isProvisional = targetOrder.isProvisional || false;
 
-    // If order was rejected, restore slot
-    if (newStatus === 'rejected' && targetOrder.status !== 'rejected') {
-      const pkg = packages.find((p) => p.id === targetOrder.packageId);
-      if (pkg) {
-        updatePackage({
-          ...pkg,
-          availableSlots: (pkg.availableSlots !== undefined ? pkg.availableSlots : 0) + 1,
-        });
+    // If order was rejected, restore slot and revoke VPN access immediately
+    if (newStatus === 'rejected') {
+      isProvisional = false;
+      vpnProvisioned = false;
+      updatedVpnDetails = undefined;
+
+      if (targetOrder.status !== 'rejected') {
+        const pkg = packages.find((p) => p.id === targetOrder.packageId);
+        if (pkg) {
+          updatePackage({
+            ...pkg,
+            availableSlots: (pkg.availableSlots !== undefined ? pkg.availableSlots : 0) + 1,
+          });
+        }
+      }
+
+      // If this order's vpn is currently the active one in localStorage, clear it
+      const currentConfigStr = localStorage.getItem('vpn_config');
+      if (currentConfigStr && targetOrder.vpnDetails?.configuration) {
+        if (currentConfigStr.includes(targetOrder.id) || currentConfigStr === JSON.stringify(targetOrder.vpnDetails)) {
+          setVpnConfig(null);
+          localStorage.removeItem('vpn_config');
+        }
       }
     }
 
-    // If approving order, provision VPN credentials and activate subscription if not yet provisioned
-    if (newStatus === 'approved' && !vpnProvisioned) {
+    // If approving order, clear provisional flag, ensure VPN credentials and subscription are permanent
+    if (newStatus === 'approved') {
+      isProvisional = false;
       vpnProvisioned = true;
-      const subId = `vpn-${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`;
-      const cleanNet = targetOrder.networkName.replace(/[^a-zA-Z0-9]/g, '');
-      const cleanPkg = targetOrder.packageName.replace(/[^a-zA-Z0-9]/g, '-');
-      
-      updatedVpnDetails = {
-        server: 'sg-node-01.v2ray.network (Singapore High-Speed)',
-        status: 'connected',
-        configuration: `vless://${subId}@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#${cleanNet}-${cleanPkg}`,
-        qrCode: 'active-v2ray-qr',
-      };
+
+      if (!updatedVpnDetails) {
+        const subId = `vpn-${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`;
+        const cleanNet = targetOrder.networkName.replace(/[^a-zA-Z0-9]/g, '');
+        const cleanPkg = targetOrder.packageName.replace(/[^a-zA-Z0-9]/g, '-');
+        
+        updatedVpnDetails = {
+          server: 'sg-node-01.v2ray.network (Singapore High-Speed)',
+          status: 'connected',
+          configuration: `vless://${subId}@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#${cleanNet}-${cleanPkg}`,
+          qrCode: 'active-v2ray-qr',
+        };
+      }
 
       // Activate subscription in AppContext
+      const subId = updatedVpnDetails.configuration?.split('@')?.[0]?.replace('vless://', '') || `sub-${Date.now()}`;
       const newSub: Subscription = {
         id: subId,
         packageId: targetOrder.packageId,
         status: 'active',
-        startDate: new Date().toISOString(),
+        startDate: targetOrder.createdAt || new Date().toISOString(),
         expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       };
       setSubscription(newSub);
@@ -552,6 +590,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return {
           ...o,
           status: newStatus,
+          isProvisional,
           adminNotes: adminNotes !== undefined ? adminNotes : o.adminNotes,
           vpnProvisioned,
           vpnDetails: updatedVpnDetails,

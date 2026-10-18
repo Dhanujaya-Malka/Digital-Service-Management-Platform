@@ -22,7 +22,9 @@ import {
   FileText, 
   QrCode, 
   ExternalLink,
-  Gift
+  Gift,
+  Zap,
+  AlertTriangle
 } from 'lucide-react';
 
 function ConfirmationContent() {
@@ -66,6 +68,11 @@ function ConfirmationContent() {
               <Gift className="h-3.5 w-3.5 mr-1.5" />
               <span>100% FREE TRIAL GIFT ACTIVATED</span>
             </Badge>
+          ) : currentOrder?.isProvisional ? (
+            <Badge className="bg-emerald-500/15 hover:bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-xs font-semibold px-3 py-1 mb-3 flex items-center gap-1.5 mx-auto w-fit">
+              <Zap className="h-3.5 w-3.5 text-primary" />
+              <span>AI PRE-APPROVED • INSTANT TEMPORARY ACCESS UNLOCKED</span>
+            </Badge>
           ) : (
             <Badge className="bg-amber-500/15 hover:bg-amber-500/15 text-amber-400 border-amber-500/30 text-xs font-semibold px-3 py-1 mb-3">
               <Clock className="h-3.5 w-3.5 mr-1.5 animate-pulse" />
@@ -74,11 +81,17 @@ function ConfirmationContent() {
           )}
 
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-            {isFreeTrial ? 'Free Trial Gift Activated!' : 'Order Submitted Successfully!'}
+            {isFreeTrial
+              ? 'Free Trial Gift Activated!'
+              : currentOrder?.isProvisional
+              ? 'Instant VPN Access Unlocked!'
+              : 'Order Submitted Successfully!'}
           </h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-lg mx-auto leading-relaxed">
             {isFreeTrial
               ? 'Your 100% Free Trial Gift Voucher has been redeemed and queued for instant VPN provisioning.'
+              : currentOrder?.isProvisional
+              ? 'Your bank transfer slip passed our smart AI receipt check! Your VPN credentials are generated and active right now. Admin will perform final deposit verification shortly.'
               : 'Thank you for your order. Your bank transfer slip has been uploaded and queued for verification.'}
           </p>
         </div>
@@ -208,7 +221,7 @@ function ConfirmationContent() {
               {/* What Happens Next Timeline */}
               <div className="border-t border-border/40 pt-5 space-y-3">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
-                  What Happens Next?
+                  Order & Connection Status
                 </h4>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3 text-xs">
@@ -217,36 +230,46 @@ function ConfirmationContent() {
                     </div>
                     <div>
                       <p className="font-semibold text-foreground">
-                        {isFreeTrial ? '1. Gift Voucher Redeemed' : '1. Slip Uploaded'}
+                        {isFreeTrial ? '1. Gift Voucher Redeemed' : '1. Slip Uploaded & AI Pre-Checked'}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
                         {isFreeTrial 
                           ? 'Your trial voucher has been authenticated and applied to this order.' 
-                          : 'Your payment receipt is recorded in the admin verification queue.'}
+                          : 'Our automated AI receipt inspector validated your document format and transaction reference.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 text-xs">
+                    <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5 ${
+                      currentOrder?.isProvisional || isFreeTrial
+                        ? 'bg-emerald-500/15 text-emerald-400'
+                        : 'bg-amber-500/15 text-amber-400 animate-pulse'
+                    }`}>
+                      {currentOrder?.isProvisional || isFreeTrial ? '✓' : '2'}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {currentOrder?.isProvisional || isFreeTrial 
+                          ? '2. Temporary VPN Access Activated (Instant)' 
+                          : '2. VPN Account Provisioning'}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {currentOrder?.isProvisional || isFreeTrial
+                          ? 'Your Singapore VLESS Reality config and QR code are ready for immediate use in your dashboard!'
+                          : 'VPN credentials will be provisioned once your deposit is confirmed.'}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3 text-xs">
                     <div className="h-6 w-6 rounded-full bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5 animate-pulse">
-                      2
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground">2. Admin Verification (15 - 30 minutes)</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Our administrative team matches the bank transaction reference and approves the subscription.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 text-xs">
-                    <div className="h-6 w-6 rounded-full bg-muted border border-border text-muted-foreground flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
                       3
                     </div>
                     <div>
-                      <p className="font-semibold text-foreground">3. VPN Account Activation & QR Code</p>
+                      <p className="font-semibold text-foreground">3. Admin Final Deposit Verification</p>
                       <p className="text-[11px] text-muted-foreground">
-                        Upon verification, your V2Ray VLESS configuration and QR code will automatically generate in your Customer Dashboard.
+                        Our administrative team confirms the bank statement reference. Once verified, your subscription becomes permanent without any interruption.
                       </p>
                     </div>
                   </div>
@@ -264,24 +287,23 @@ function ConfirmationContent() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href="/dashboard/orders" className="w-full sm:w-auto">
+          <Link href="/dashboard/vpn" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto gap-2 text-xs h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
-              <FileText className="h-4 w-4" />
-              <span>View My Orders</span>
+              <QrCode className="h-4 w-4" />
+              <span>Connect Now (View VPN QR)</span>
             </Button>
           </Link>
 
           <Link href="/dashboard" className="w-full sm:w-auto">
             <Button variant="outline" className="w-full sm:w-auto gap-2 text-xs h-11 px-6 rounded-xl border-border/80">
-              <QrCode className="h-4 w-4" />
               <span>Go to Dashboard</span>
             </Button>
           </Link>
 
-          <Link href="/" className="w-full sm:w-auto">
+          <Link href="/dashboard/orders" className="w-full sm:w-auto">
             <Button variant="ghost" className="w-full sm:w-auto gap-2 text-xs h-11 px-5 rounded-xl text-muted-foreground hover:text-foreground">
-              <Home className="h-4 w-4" />
-              <span>Back to Home</span>
+              <FileText className="h-4 w-4" />
+              <span>View Order Details</span>
             </Button>
           </Link>
         </div>

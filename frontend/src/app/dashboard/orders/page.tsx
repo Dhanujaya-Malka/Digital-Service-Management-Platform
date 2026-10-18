@@ -81,10 +81,17 @@ export default function CustomerOrdersPage() {
 
                     <div>
                       {order.status === 'pending_approval' && (
-                        <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-xs font-semibold px-2.5 py-0.5">
-                          <Clock className="h-3 w-3 mr-1 animate-pulse" />
-                          Verification In Progress
-                        </Badge>
+                        order.isProvisional ? (
+                          <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-xs font-semibold px-2.5 py-0.5">
+                            <Clock className="h-3 w-3 mr-1 animate-pulse" />
+                            AI Pre-Approved (Temporary Access)
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-xs font-semibold px-2.5 py-0.5">
+                            <Clock className="h-3 w-3 mr-1 animate-pulse" />
+                            Verification In Progress
+                          </Badge>
+                        )
                       )}
                       {order.status === 'approved' && (
                         <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-xs font-semibold px-2.5 py-0.5">
@@ -136,9 +143,15 @@ export default function CustomerOrdersPage() {
 
                       {/* Status Explanatory Note */}
                       {order.status === 'pending_approval' && (
-                        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300/90 leading-relaxed">
-                          ⏱️ <strong>Awaiting Slip Review:</strong> Your bank receipt is in the admin verification queue. Once verified (usually 15-30 minutes), your V2Ray config will be unlocked.
-                        </div>
+                        order.isProvisional ? (
+                          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed">
+                            ⚡ <strong>Temporary VPN Access Active:</strong> Your bank slip was pre-approved by our automated AI check. Your V2Ray connection is active right now while our administrator verifies the bank deposit.
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300/90 leading-relaxed">
+                            ⏱️ <strong>Awaiting Slip Review:</strong> Your bank receipt is in the admin verification queue. Once verified (usually 15-30 minutes), your V2Ray config will be unlocked.
+                          </div>
+                        )
                       )}
 
                       {order.status === 'approved' && (
@@ -173,7 +186,7 @@ export default function CustomerOrdersPage() {
                       </div>
 
                       <div className="w-full sm:w-auto md:w-full flex justify-end gap-2 pt-2">
-                        {order.status === 'approved' ? (
+                        {order.status === 'approved' || (order.isProvisional && order.status === 'pending_approval' && order.vpnProvisioned) ? (
                           <Link href="/dashboard/vpn" className="w-full sm:w-auto">
                             <Button size="sm" className="w-full sm:w-auto gap-1.5 text-xs rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
                               <QrCode className="h-3.5 w-3.5" />

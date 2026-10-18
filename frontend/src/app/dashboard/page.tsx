@@ -21,7 +21,9 @@ import {
   Wifi,
   Layers,
   X,
-  Smartphone
+  Smartphone,
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +47,8 @@ interface ActivePackageItem {
   subscriptionId: string;
   serverLocation: string;
   vlessUrl: string;
+  isProvisional?: boolean;
+  status?: string;
 }
 
 export default function DashboardOverview() {
@@ -54,11 +58,13 @@ export default function DashboardOverview() {
   const [selectedPackageIndex, setSelectedPackageIndex] = useState<number>(0);
   const [qrModalPackage, setQrModalPackage] = useState<ActivePackageItem | null>(null);
 
-  // Extract all approved orders for this customer
+  // Extract all approved or provisional orders with active VPN for this customer
   const userApprovedOrders = useMemo(() => {
     if (!user?.email) return [];
     return orders.filter(
-      (o) => o.customerEmail?.toLowerCase() === user.email.toLowerCase() && o.status === 'approved'
+      (o) =>
+        o.customerEmail?.toLowerCase() === user.email.toLowerCase() &&
+        (o.status === 'approved' || (o.isProvisional && o.status === 'pending_approval' && o.vpnProvisioned))
     );
   }, [orders, user?.email]);
 
@@ -118,6 +124,8 @@ export default function DashboardOverview() {
           subscriptionId: subId,
           serverLocation: order.vpnDetails?.server || 'sg-node-01.v2ray.network:443 (Singapore Reality)',
           vlessUrl,
+          isProvisional: Boolean(order.isProvisional && order.status === 'pending_approval'),
+          status: order.status,
         });
       });
     } else if (subscription) {
@@ -160,6 +168,17 @@ export default function DashboardOverview() {
   const currentPackage = hasAnyPackages
     ? activePackagesList[Math.min(selectedPackageIndex, activePackagesList.length - 1)]
     : null;
+
+  const hasProvisionalPackage = useMemo(() => {
+    return activePackagesList.some((p) => p.isProvisional);
+  }, [activePackagesList]);
+
+  const latestRejectedOrder = useMemo(() => {
+    if (!user?.email) return null;
+    return orders.find(
+      (o) => o.customerEmail?.toLowerCase() === user.email.toLowerCase() && o.status === 'rejected'
+    );
+  }, [orders, user?.email]);
 
   const copyText = (text: string, type: 'id' | 'url', idKey: string) => {
     navigator.clipboard.writeText(text);
@@ -212,6 +231,77 @@ export default function DashboardOverview() {
         </div>
       </div>
 
+      {/* Amber Notification Banner: Payment Verification Pending (Provisional Access Active) */}
+      {hasProvisionalPackage && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-300 shadow-lg shadow-amber-500/5 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5 sm:mt-0">
+                <Clock className="h-5 w-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-extrabold text-sm sm:text-base text-foreground">
+                    Payment Verification Pending — Temporary Access Active
+                  </span>
+                  <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/40 text-[10px] font-bold">
+                    🤖 AI Pre-Approved
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+                  Your bank transfer slip has passed our automated AI pre-check and provisional VPN access is active.
+                  Our administrator is currently verifying the bank deposit. Once confirmed, this notice will clear and your package will be permanently active.
+                </p>
+              </div>
+            </div>
+            <Link href="/dashboard/vpn" className="shrink-0 self-end sm:self-center">
+              <Button size="sm" className="h-8 text-xs bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl gap-1.5 shadow-sm">
+                <Zap className="h-3.5 w-3.5" />
+                <span>View VPN Config</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Red Alert Banner: Payment Verification Declined / VPN Access Revoked */}
+      {latestRejectedOrder && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-destructive/10 border-2 border-destructive/30 text-destructive shadow-lg shadow-destructive/5 animate-in fade-in">
+          <div className="flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-destructive/20 text-destructive shrink-0">
+              <XCircle className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-extrabold text-sm sm:text-base text-destructive">
+                  Payment Verification Declined — VPN Access Revoked
+                </span>
+                <Badge className="bg-destructive/20 text-destructive border-destructive/40 text-[10px] font-bold">
+                  Order: {latestRejectedOrder.id}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                The payment slip for package <strong>{latestRejectedOrder.packageName}</strong> was reviewed and declined by our administrator.
+                Reason: <em>"{latestRejectedOrder.adminNotes || 'Payment could not be verified on the bank statement.'}"</em>. 
+                Any provisional VPN access for this order has been permanently terminated.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <Link href="/pricing">
+                  <Button size="sm" variant="destructive" className="h-8 text-xs rounded-xl">
+                    Order Again
+                  </Button>
+                </Link>
+                <Link href="/dashboard/orders">
+                  <Button size="sm" variant="outline" className="h-8 text-xs rounded-xl border-border/80">
+                    View Orders
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Multi-Package Switcher Tabs (when customer has 2 or more active packages) */}
       {hasAnyPackages && activePackagesList.length > 1 && (
         <div className="p-4 rounded-2xl bg-card/90 border border-border/70 backdrop-blur-md shadow-md space-y-3">
@@ -236,8 +326,13 @@ export default function DashboardOverview() {
                       : 'bg-muted/50 text-muted-foreground border-border/60 hover:bg-card hover:text-foreground'
                   }`}
                 >
-                  <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className={`flex h-2 w-2 rounded-full ${pkg.isProvisional ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse`} />
                   <span>{pkg.name}</span>
+                  {pkg.isProvisional && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/25 text-amber-300 font-semibold">
+                      TEMPORARY
+                    </span>
+                  )}
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
                     isSelected ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
                   }`}>
@@ -264,11 +359,19 @@ export default function DashboardOverview() {
               <div className="space-y-4 flex-1">
                 {/* Status Pill */}
                 {hasAnyPackages && currentPackage ? (
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>ACTIVE PACKAGE</span>
-                    <span className="text-[10px] text-foreground/80">• {currentPackage.networkName}</span>
-                  </div>
+                  currentPackage.isProvisional ? (
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                      <Clock className="h-3.5 w-3.5 animate-pulse" />
+                      <span>TEMPORARY ACCESS (PENDING REVIEW)</span>
+                      <span className="text-[10px] text-foreground/80">• {currentPackage.networkName}</span>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>ACTIVE & VERIFIED</span>
+                      <span className="text-[10px] text-foreground/80">• {currentPackage.networkName}</span>
+                    </div>
+                  )
                 ) : (
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border">
                     <span className="h-2 w-2 rounded-full bg-muted-foreground" />

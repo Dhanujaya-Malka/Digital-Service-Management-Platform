@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { QrCode, Copy, CheckCircle2, Download, Smartphone, ArrowRight, Zap, Shield, Layers, Radio } from 'lucide-react';
+import { QrCode, Copy, CheckCircle2, Download, Smartphone, ArrowRight, Zap, Shield, Layers, Radio, Clock, AlertTriangle, XCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ActiveVPNItem {
@@ -17,6 +17,7 @@ interface ActiveVPNItem {
   server: string;
   configuration: string;
   subscriptionId: string;
+  isProvisional?: boolean;
 }
 
 export default function VPNConfigPage() {
@@ -24,11 +25,20 @@ export default function VPNConfigPage() {
   const [copied, setCopied] = useState(false);
   const [selectedPkgIndex, setSelectedPkgIndex] = useState(0);
 
-  // Derive all active packages for the user
+  // Derive all active packages (approved or provisional) for the user
   const userApprovedOrders = useMemo(() => {
     if (!user?.email) return [];
     return orders.filter(
-      (o) => o.customerEmail?.toLowerCase() === user.email.toLowerCase() && o.status === 'approved'
+      (o) =>
+        o.customerEmail?.toLowerCase() === user.email.toLowerCase() &&
+        (o.status === 'approved' || (o.isProvisional && o.status === 'pending_approval' && o.vpnProvisioned))
+    );
+  }, [orders, user?.email]);
+
+  const latestRejectedOrder = useMemo(() => {
+    if (!user?.email) return null;
+    return orders.find(
+      (o) => o.customerEmail?.toLowerCase() === user.email.toLowerCase() && o.status === 'rejected'
     );
   }, [orders, user?.email]);
 
@@ -56,6 +66,7 @@ export default function VPNConfigPage() {
           server,
           configuration,
           subscriptionId: subId,
+          isProvisional: Boolean(order.isProvisional && order.status === 'pending_approval'),
         });
       });
     } else if (vpnConfig && vpnConfig.configuration) {
@@ -127,8 +138,13 @@ export default function VPNConfigPage() {
                       : 'bg-muted/50 text-muted-foreground border-border/60 hover:bg-card hover:text-foreground'
                   }`}
                 >
-                  <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className={`flex h-2 w-2 rounded-full ${cfg.isProvisional ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse`} />
                   <span>{cfg.name}</span>
+                  {cfg.isProvisional && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold">
+                      TEMPORARY
+                    </span>
+                  )}
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                     isSelected ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
                   }`}>
@@ -143,6 +159,44 @@ export default function VPNConfigPage() {
 
       {!hasActiveConfig || !currentConfig ? (
         <div className="space-y-6">
+          {latestRejectedOrder && (
+            <Card className="border-2 border-destructive/30 bg-destructive/5 p-6 rounded-2xl text-left shadow-lg shadow-destructive/5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-destructive/15 text-destructive shrink-0">
+                  <XCircle className="h-6 w-6" />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-extrabold text-destructive">
+                      VPN Connection Cut Off — Payment Verification Declined
+                    </h3>
+                    <Badge className="bg-destructive/15 text-destructive border-destructive/30 text-[10px]">
+                      Order: {latestRejectedOrder.id}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    The payment slip for package <strong>{latestRejectedOrder.packageName}</strong> was reviewed and declined by administrator.
+                    <br />
+                    Reason: <em>"{latestRejectedOrder.adminNotes || 'Payment could not be verified on the bank statement.'}"</em>. 
+                    Any provisional VPN credentials for this order have been permanently cut off.
+                  </p>
+                  <div className="pt-2 flex items-center gap-2">
+                    <Link href="/pricing">
+                      <Button size="sm" variant="destructive" className="h-8 text-xs rounded-xl">
+                        Order Again
+                      </Button>
+                    </Link>
+                    <Link href="/support">
+                      <Button size="sm" variant="outline" className="h-8 text-xs rounded-xl border-border/80">
+                        Contact Support
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
           <Card className="border-dashed p-8 md:p-12 text-center bg-card/60">
             <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
               <QrCode className="h-8 w-8 opacity-70" />
@@ -210,11 +264,24 @@ export default function VPNConfigPage() {
           </Card>
         </div>
       ) : (
-        <Tabs defaultValue="qrcode" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
-            <TabsTrigger value="qrcode">Scan QR Code</TabsTrigger>
-            <TabsTrigger value="manual">Manual Setup</TabsTrigger>
-          </TabsList>
+        <div className="space-y-4">
+          {currentConfig.isProvisional && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-300 text-xs flex items-center gap-3 shadow-md animate-in fade-in">
+              <Clock className="h-5 w-5 text-amber-400 shrink-0 animate-pulse" />
+              <div>
+                <strong className="text-sm block text-foreground">Temporary VPN Access Active (AI Pre-Approved)</strong>
+                <span>
+                  You have full instant access to this VLESS configuration and QR code. Administrator verification of your bank transfer slip is in progress. Once confirmed, this warning clears and your subscription becomes permanent.
+                </span>
+              </div>
+            </div>
+          )}
+
+          <Tabs defaultValue="qrcode" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
+              <TabsTrigger value="qrcode">Scan QR Code</TabsTrigger>
+              <TabsTrigger value="manual">Manual Setup</TabsTrigger>
+            </TabsList>
           
           <TabsContent value="qrcode" className="mt-6">
             <div className="grid md:grid-cols-2 gap-8">
@@ -319,6 +386,7 @@ export default function VPNConfigPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       )}
     </div>
   );

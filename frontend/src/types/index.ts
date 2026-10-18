@@ -125,6 +125,9 @@ export interface Order {
   adminNotes?: string;
   vpnProvisioned?: boolean;
   vpnDetails?: VPNConfig;
+  isProvisional?: boolean; // Temporary instant access while admin verification is pending
+  aiPreCheckPassed?: boolean; // AI pre-check passed for payment slip
+  aiVerificationDetails?: string; // AI check details/note
 }
 
 export interface BankDetails {

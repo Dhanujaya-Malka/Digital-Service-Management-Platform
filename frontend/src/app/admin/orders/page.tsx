@@ -80,14 +80,14 @@ export default function AdminOrdersPage() {
 
   const handleApprove = (orderId: string) => {
     updateOrderStatus(orderId, 'approved', 'Payment verified and approved by Administrator.');
-    setActionSuccess(`Order ${orderId} approved successfully! VPN configuration provisioned.`);
+    setActionSuccess(`Order ${orderId} verified & permanently approved! Provisional status cleared.`);
     setTimeout(() => setActionSuccess(null), 4000);
   };
 
   const handleConfirmReject = () => {
     if (!rejectOrderTarget) return;
     updateOrderStatus(rejectOrderTarget.id, 'rejected', rejectReason);
-    setActionSuccess(`Order ${rejectOrderTarget.id} was rejected.`);
+    setActionSuccess(`Order ${rejectOrderTarget.id} was rejected. Customer's temporary VPN access permanently revoked.`);
     setRejectOrderTarget(null);
     setTimeout(() => setActionSuccess(null), 4000);
   };
@@ -277,28 +277,45 @@ export default function AdminOrdersPage() {
 
                       {/* Payment Slip Preview Trigger */}
                       <td className="py-3.5 px-4">
-                        {order.slipFileData || order.slipFileName ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedOrderForSlip(order)}
-                            className="h-8 gap-1.5 text-[11px] rounded-lg border-border/80 hover:bg-muted"
-                          >
-                            <FileText className="h-3.5 w-3.5 text-primary" />
-                            <span>View Slip</span>
-                          </Button>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground italic">No Slip</span>
-                        )}
+                        <div className="space-y-1">
+                          {order.slipFileData || order.slipFileName ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedOrderForSlip(order)}
+                              className="h-8 gap-1.5 text-[11px] rounded-lg border-border/80 hover:bg-muted"
+                            >
+                              <FileText className="h-3.5 w-3.5 text-primary" />
+                              <span>View Slip</span>
+                            </Button>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground italic">No Slip</span>
+                          )}
+                          {order.aiPreCheckPassed && (
+                            <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 font-semibold block w-fit">
+                              🤖 AI Pre-Checked
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Status Badge */}
                       <td className="py-3.5 px-4">
                         {order.status === 'pending_approval' && (
-                          <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px] font-bold">
-                            <Clock className="h-3 w-3 mr-1 animate-pulse" />
-                            Pending
-                          </Badge>
+                          order.isProvisional ? (
+                            <div className="space-y-0.5">
+                              <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px] font-bold">
+                                <Clock className="h-3 w-3 mr-1 animate-pulse" />
+                                Temporary Active
+                              </Badge>
+                              <span className="block text-[9px] text-amber-300/80 font-medium">Pending Review</span>
+                            </div>
+                          ) : (
+                            <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px] font-bold">
+                              <Clock className="h-3 w-3 mr-1 animate-pulse" />
+                              Pending
+                            </Badge>
+                          )
                         )}
                         {order.status === 'approved' && (
                           <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px] font-bold">
@@ -444,6 +461,14 @@ export default function AdminOrdersPage() {
                   <span className="font-mono text-foreground font-bold">{selectedOrderForSlip.bankReference}</span>
                 </div>
               )}
+              {selectedOrderForSlip?.aiPreCheckPassed && (
+                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>
+                    <strong>AI Pre-Check:</strong> {selectedOrderForSlip.aiVerificationDetails || 'Receipt structure & metadata validated.'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -498,6 +523,14 @@ export default function AdminOrdersPage() {
           </DialogHeader>
 
           <div className="space-y-3 py-2">
+            {(rejectOrderTarget?.isProvisional || rejectOrderTarget?.vpnProvisioned) && (
+              <div className="p-3 rounded-xl bg-destructive/15 border border-destructive/30 text-xs text-destructive flex items-start gap-2.5">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Immediate Cut-Off:</strong> This user currently has active provisional VPN credentials. Confirming rejection will immediately revoke all VPN access and disconnect the client.
+                </span>
+              </div>
+            )}
             <label className="text-xs font-semibold text-foreground">Reason for Rejection:</label>
             <Input
               value={rejectReason}
