@@ -4,7 +4,7 @@ export default function HowItWorksPage() {
   return (
     <div className="py-20 md:py-32">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center max-w-3xl mx-auto mb-20">
+        <div className="text-center max-w-3xl mx-auto mb-12">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6">
             How it works
           </h1>
@@ -57,6 +57,21 @@ export default function HowItWorksPage() {
                 Once connected, our app creates an encrypted tunnel that routes your entire internet traffic through your selected Zoom or social media package. Your Internet Service Provider (ISP) will only see it as Zoom data, meaning your normal data quota remains completely untouched!
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Clean Looping Showcase Video (Below Steps) */}
+        <div className="max-w-5xl mx-auto my-20">
+          <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-border/80 bg-black shadow-2xl">
+            <video
+              src="/videos/loop.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              controls
+              className="w-full h-auto max-h-[650px] object-contain mx-auto"
+            />
           </div>
         </div>
 

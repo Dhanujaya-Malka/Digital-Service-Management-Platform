@@ -3,33 +3,50 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ShieldAlert, ArrowRight, Zap, ArrowLeft, Lock } from 'lucide-react';
+import { ShieldAlert, ArrowRight, Zap, ArrowLeft, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/AppContext';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { user, login } = useApp();
-  const [email, setEmail] = useState('admin@v2nexus.com');
+  const { login } = useApp();
+  const [username, setUsername] = useState('superadmin');
   const [password, setPassword] = useState('admin123');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  const performLogin = (targetEmail: string) => {
-    setIsLoading(true);
-    login({
-      id: 'admin-1',
-      name: 'System Admin',
-      email: targetEmail || 'admin@v2nexus.com',
-      role: 'admin',
-    });
-    // Navigate immediately to package manager
-    router.push('/admin/packages');
-  };
+  const [error, setError] = useState<string | null>(null);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    performLogin(email);
+    setIsLoading(true);
+    setError(null);
+
+    const trimmedUser = username.trim().toLowerCase();
+    const validUsernames = ['superadmin', 'admin', 'admin@v2nexus.lk', 'admin@v2nexus.com'];
+    const validPasswords = ['admin123', 'superadmin', 'superadmin123', 'admin'];
+
+    if (!validUsernames.includes(trimmedUser)) {
+      setIsLoading(false);
+      setError('Invalid Super Admin username or email.');
+      return;
+    }
+
+    if (!validPasswords.includes(password.trim())) {
+      setIsLoading(false);
+      setError('Invalid password. (Default: admin123 or superadmin)');
+      return;
+    }
+
+    setTimeout(() => {
+      login({
+        id: 'admin-super',
+        name: 'Super Admin',
+        email: trimmedUser.includes('@') ? trimmedUser : 'admin@v2nexus.lk',
+        role: 'admin',
+      });
+      router.push('/admin/packages');
+    }, 500);
   };
 
   return (
@@ -49,67 +66,66 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        {/* 1-Click Fast Access Button */}
-        <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 text-center space-y-2">
-          <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-destructive">
-            <Zap className="h-3.5 w-3.5" />
-            <span>One-Click Instant Access</span>
+        {error && (
+          <div className="p-3.5 rounded-xl bg-destructive/15 border border-destructive/30 text-xs text-destructive font-medium animate-in fade-in">
+            <span>{error}</span>
           </div>
-          <Button 
-            type="button"
-            variant="destructive"
-            className="w-full h-11 font-bold text-sm shadow-md gap-2"
-            onClick={() => performLogin('admin@v2nexus.com')}
-            disabled={isLoading}
-          >
-            <span>{isLoading ? 'Accessing...' : 'Enter Admin Panel Now'}</span>
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-card px-2 text-muted-foreground uppercase font-medium">Or log in with credentials</span>
-          </div>
-        </div>
+        )}
 
         <form className="space-y-4" onSubmit={handleFormSubmit}>
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-semibold text-foreground">Admin Email</label>
+              <label className="text-xs font-semibold text-foreground">Admin Username or Email</label>
               <Input 
-                type="email" 
+                type="text" 
                 required 
                 className="mt-1 h-11 text-sm bg-muted/30" 
-                placeholder="admin@v2nexus.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="superadmin or admin@v2nexus.lk"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (error) setError(null);
+                }}
               />
             </div>
             <div>
               <label className="text-xs font-semibold text-foreground">Password</label>
-              <Input 
-                type="password" 
-                required 
-                className="mt-1 h-11 text-sm bg-muted/30" 
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative mt-1">
+                <Input 
+                  type={showPassword ? 'text' : 'password'} 
+                  required 
+                  className="h-11 pr-10 text-sm bg-muted/30" 
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError(null);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
           <Button 
             type="submit" 
-            variant="outline"
-            className="w-full h-11 text-sm font-semibold border-border/80 hover:bg-muted gap-2"
+            variant="destructive"
+            className="w-full h-11 text-sm font-semibold shadow-md gap-2"
             disabled={isLoading}
           >
             <Lock className="h-3.5 w-3.5" />
-            <span>{isLoading ? 'Authenticating...' : 'Sign In With Credentials'}</span>
+            <span>{isLoading ? 'Authenticating...' : 'Sign In as Super Admin'}</span>
           </Button>
         </form>
 

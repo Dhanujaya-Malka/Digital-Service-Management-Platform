@@ -14,9 +14,13 @@ interface PricingCardProps {
 
 export default function PricingCard({ pkg }: PricingCardProps) {
   const router = useRouter();
-  const { user, selectPlan } = useApp();
+  const { user, selectPlan, getEffectiveSlots } = useApp();
+
+  const effectiveSlots = getEffectiveSlots ? getEffectiveSlots(pkg) : (pkg.availableSlots !== undefined ? pkg.availableSlots : 100);
+  const isOutOfStock = effectiveSlots <= 0;
 
   const handleChoosePlan = () => {
+    if (isOutOfStock) return;
     selectPlan(pkg);
     if (!user) {
       router.push(`/login?redirect=${encodeURIComponent(`/checkout/network?plan=${pkg.id}`)}`);
@@ -89,10 +93,17 @@ export default function PricingCard({ pkg }: PricingCardProps) {
                 Popular
               </Badge>
             )}
-            <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>ACTIVE</span>
-            </div>
+            {isOutOfStock ? (
+              <div className="flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/25">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                <span>OUT OF STOCK</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>ACTIVE</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -128,11 +139,15 @@ export default function PricingCard({ pkg }: PricingCardProps) {
           <span className="text-xs font-semibold text-muted-foreground">Rs.</span>
           <span className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">{pkg.price}</span>
           <span className="text-xs text-muted-foreground ml-1">/ month</span>
-          {pkg.availableSlots > 0 && (
-            <span className="ml-auto text-[10px] font-mono text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
-              {pkg.availableSlots} slots left
+          {isOutOfStock ? (
+            <span className="ml-auto text-[10px] font-bold font-mono text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded-md border border-rose-500/30">
+              0 slots left (Sold Out)
             </span>
-          )}
+          ) : effectiveSlots > 0 ? (
+            <span className="ml-auto text-[10px] font-mono text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
+              {effectiveSlots} slots left
+            </span>
+          ) : null}
         </div>
       </CardHeader>
 
@@ -209,11 +224,25 @@ export default function PricingCard({ pkg }: PricingCardProps) {
       {/* Action Footer */}
       <CardFooter className="pt-3 pb-6 px-6 flex items-center gap-2">
         <Button 
-          className="flex-1 h-11 text-xs sm:text-sm font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 group/btn transition-all flex items-center justify-center gap-1.5"
+          disabled={isOutOfStock}
+          className={`flex-1 h-11 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            isOutOfStock
+              ? 'bg-muted text-muted-foreground border border-border/60 cursor-not-allowed hover:bg-muted'
+              : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 group/btn'
+          }`}
           onClick={handleChoosePlan}
         >
-          <span>Choose Plan</span>
-          <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform" />
+          {isOutOfStock ? (
+            <>
+              <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+              <span>Sold Out / Unavailable</span>
+            </>
+          ) : (
+            <>
+              <span>Choose Plan</span>
+              <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform" />
+            </>
+          )}
         </Button>
 
         {/* Info Dialog */}
@@ -293,11 +322,25 @@ export default function PricingCard({ pkg }: PricingCardProps) {
 
               <div className="pt-2">
                 <Button 
-                  className="w-full h-11 text-xs sm:text-sm font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                  disabled={isOutOfStock}
+                  className={`w-full h-11 text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-1.5 ${
+                    isOutOfStock
+                      ? 'bg-muted text-muted-foreground border border-border/60 cursor-not-allowed'
+                      : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 cursor-pointer'
+                  }`}
                   onClick={handleChoosePlan}
                 >
-                  <span>Choose This Plan</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  {isOutOfStock ? (
+                    <>
+                      <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                      <span>Currently Out of Stock</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Choose This Plan</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

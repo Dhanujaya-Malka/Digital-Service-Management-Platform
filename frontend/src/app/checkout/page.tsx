@@ -239,8 +239,18 @@ function CheckoutContent() {
       return;
     }
 
+    if (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0) {
+      setFormError('This package is currently out of stock (0 slots remaining). Please return to Pricing to choose an available plan.');
+      return;
+    }
+
     if (!activeNetwork) {
       setFormError('No network configuration selected. Please choose a supported network.');
+      return;
+    }
+
+    if (activeNetworkPkg && activeNetworkPkg.status !== 'active') {
+      setFormError(`The selected bypass route "${activeNetworkPkg.name}" is currently not available / offline. Please go back to network selection and choose an active route.`);
       return;
     }
 
@@ -945,13 +955,34 @@ function CheckoutContent() {
                   {/* Submit Order Button */}
                   <Button
                     type="submit"
-                    disabled={isSubmitting || !activePlan || !activeNetwork}
-                    className="w-full h-11 text-xs sm:text-sm font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 mt-2"
+                    disabled={
+                      isSubmitting || 
+                      !activePlan || 
+                      !activeNetwork || 
+                      (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0) ||
+                      Boolean(activeNetworkPkg && activeNetworkPkg.status !== 'active')
+                    }
+                    className={`w-full h-11 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-2 mt-2 ${
+                      (activePlan?.availableSlots !== undefined && activePlan.availableSlots <= 0) ||
+                      (activeNetworkPkg && activeNetworkPkg.status !== 'active')
+                        ? 'bg-muted text-muted-foreground border border-border/70 cursor-not-allowed hover:bg-muted'
+                        : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20'
+                    }`}
                   >
                     {isSubmitting ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent" />
                         <span>Submitting Order...</span>
+                      </>
+                    ) : activePlan?.availableSlots !== undefined && activePlan.availableSlots <= 0 ? (
+                      <>
+                        <AlertCircle className="h-4 w-4 text-rose-400" />
+                        <span>Selected Package is Out of Stock</span>
+                      </>
+                    ) : activeNetworkPkg && activeNetworkPkg.status !== 'active' ? (
+                      <>
+                        <AlertCircle className="h-4 w-4 text-rose-400" />
+                        <span>Selected Route is Not Available</span>
                       </>
                     ) : (
                       <>

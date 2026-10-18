@@ -16,12 +16,14 @@ import {
   Gift, 
   ArrowRight,
   ShieldAlert,
-  FileText
+  FileText,
+  HardDrive
 } from 'lucide-react';
 import { getIspLogo } from '@/components/marketing/IspLogos';
 
 export default function AdminDashboard() {
-  const { orders, packages, networkPackages, promoCodes } = useApp();
+  const { orders, packages, networkPackages, promoCodes, getServerBandwidthStats } = useApp();
+  const bandwidthStats = getServerBandwidthStats ? getServerBandwidthStats() : null;
 
   const pendingOrders = orders.filter((o) => o.status === 'pending_approval');
   const approvedOrders = orders.filter((o) => o.status === 'approved');
@@ -56,7 +58,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Top Stats Overview */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {/* Pending Orders */}
         <Link href="/admin/orders">
           <Card className="hover:border-destructive/60 transition-colors cursor-pointer bg-card/60">
@@ -130,6 +132,26 @@ export default function AdminDashboard() {
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Single-use trial vouchers ready
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Server Bandwidth Pool */}
+        <Link href="/admin/packages">
+          <Card className="hover:border-primary/60 transition-colors cursor-pointer bg-card/60">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Bandwidth Pool
+              </CardTitle>
+              <HardDrive className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-bold font-mono text-emerald-400">
+                {bandwidthStats?.remainingBandwidthTb || 20} TB
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Free of {bandwidthStats?.totalCapacityTb || 20} TB quota
               </p>
             </CardContent>
           </Card>

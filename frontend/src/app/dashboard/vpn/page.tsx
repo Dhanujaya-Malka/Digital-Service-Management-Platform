@@ -1,36 +1,147 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { QrCode, Copy, CheckCircle2, Download, Smartphone, ArrowRight, Zap, Shield } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { QrCode, Copy, CheckCircle2, Download, Smartphone, ArrowRight, Zap, Shield, Layers, Radio } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+interface ActiveVPNItem {
+  id: string;
+  name: string;
+  networkName: string;
+  server: string;
+  configuration: string;
+  subscriptionId: string;
+}
+
 export default function VPNConfigPage() {
-  const { vpnConfig, subscription } = useApp();
+  const { vpnConfig, subscription, user, orders, packages } = useApp();
   const [copied, setCopied] = useState(false);
+  const [selectedPkgIndex, setSelectedPkgIndex] = useState(0);
+
+  // Derive all active packages for the user
+  const userApprovedOrders = useMemo(() => {
+    if (!user?.email) return [];
+    return orders.filter(
+      (o) => o.customerEmail?.toLowerCase() === user.email.toLowerCase() && o.status === 'approved'
+    );
+  }, [orders, user?.email]);
+
+  const activeConfigs = useMemo<ActiveVPNItem[]>(() => {
+    const list: ActiveVPNItem[] = [];
+
+    if (userApprovedOrders.length > 0) {
+      userApprovedOrders.forEach((order) => {
+        const matchedPkg = packages.find((p) => p.id === order.packageId);
+        const pkgName = order.packageName || matchedPkg?.name || 'V2Ray Service';
+        const netName = order.networkPackageName || order.networkName || 'Sri Lanka Bypass';
+
+        const subId = order.vpnDetails?.configuration?.split('@')?.[0]?.replace('vless://', '') ||
+          `vpn-${order.id.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        const cleanNet = netName.replace(/[^a-zA-Z0-9]/g, '');
+        const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
+        const configuration = order.vpnDetails?.configuration ||
+          `vless://${subId}@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#${cleanNet}-${cleanPkg}`;
+        const server = order.vpnDetails?.server || 'sg-node-01.v2ray.network:443 (Singapore Reality)';
+
+        list.push({
+          id: order.id,
+          name: pkgName,
+          networkName: netName,
+          server,
+          configuration,
+          subscriptionId: subId,
+        });
+      });
+    } else if (vpnConfig && vpnConfig.configuration) {
+      list.push({
+        id: subscription?.id || 'default-vpn',
+        name: 'V2Ray High-Speed VPN',
+        networkName: 'SLT & Dialog Bypass',
+        server: vpnConfig.server || 'sg-node-01.v2ray.network:443 (Singapore Reality)',
+        configuration: vpnConfig.configuration,
+        subscriptionId: subscription?.id || 'vpn-default-sub',
+      });
+    }
+
+    return list;
+  }, [userApprovedOrders, vpnConfig, subscription, packages]);
+
+  const hasActiveConfig = activeConfigs.length > 0;
+  const currentConfig = hasActiveConfig
+    ? activeConfigs[Math.min(selectedPkgIndex, activeConfigs.length - 1)]
+    : null;
 
   const copyToClipboard = () => {
-    if (vpnConfig?.configuration) {
-      navigator.clipboard.writeText(vpnConfig.configuration);
+    if (currentConfig?.configuration) {
+      navigator.clipboard.writeText(currentConfig.configuration);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const hasActiveConfig = !!vpnConfig && !!vpnConfig.configuration;
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-12">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">VPN Configuration</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">Setup your devices to connect to the secure network.</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
+          <span>VPN Configuration</span>
+          {hasActiveConfig && activeConfigs.length > 1 && (
+            <Badge variant="secondary" className="text-xs bg-primary/15 text-primary border-primary/30">
+              {activeConfigs.length} Active Configurations
+            </Badge>
+          )}
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          Setup your Android, iOS, Windows, or macOS devices using private VLESS Reality configs and QR codes.
+        </p>
       </div>
 
-      {!hasActiveConfig ? (
+      {/* Package Selector Switcher when user has 2 or more active packages */}
+      {hasActiveConfig && activeConfigs.length > 1 && (
+        <div className="p-4 rounded-2xl bg-card/90 border border-border/70 backdrop-blur-md shadow-md space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              <span>Select Package Configuration ({activeConfigs.length} Purchased)</span>
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {activeConfigs.map((cfg, idx) => {
+              const isSelected = idx === selectedPkgIndex;
+              return (
+                <button
+                  key={cfg.id}
+                  onClick={() => {
+                    setSelectedPkgIndex(idx);
+                    setCopied(false);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/25 scale-[1.02]'
+                      : 'bg-muted/50 text-muted-foreground border-border/60 hover:bg-card hover:text-foreground'
+                  }`}
+                >
+                  <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{cfg.name}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    isSelected ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {cfg.networkName}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!hasActiveConfig || !currentConfig ? (
         <div className="space-y-6">
           <Card className="border-dashed p-8 md:p-12 text-center bg-card/60">
             <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
@@ -109,27 +220,25 @@ export default function VPNConfigPage() {
             <div className="grid md:grid-cols-2 gap-8">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base font-bold">V2Ray / Xray QR Code</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-bold">{currentConfig.name} QR Code</CardTitle>
+                    <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary border-primary/20">
+                      {currentConfig.networkName}
+                    </Badge>
+                  </div>
                   <CardDescription className="text-xs">Scan this with your mobile app (NetMod, v2rayNG, v2box, etc.)</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center justify-center p-6">
                   <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
-                    {/* QR Code Visual */}
-                    <div className="w-48 h-48 sm:w-64 sm:h-64 border-4 border-black grid grid-cols-4 grid-rows-4 gap-1 p-2 relative">
-                      <div className="w-full h-full bg-black col-span-1 row-span-1 rounded-sm"></div>
-                      <div className="w-full h-full bg-black col-start-4 row-start-1 rounded-sm"></div>
-                      <div className="w-full h-full bg-black col-start-1 row-start-4 rounded-sm"></div>
-                      <div className="w-full h-full bg-black col-start-3 row-start-3 rounded-sm"></div>
-                      <div className="w-full h-full bg-black col-start-2 row-start-1 rounded-sm"></div>
-                      <div className="w-full h-full bg-black col-start-4 row-start-2 rounded-sm"></div>
-                      <div className="w-full h-full bg-black col-start-2 row-start-4 rounded-sm"></div>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <QrCode className="h-16 w-16 text-black/50" />
-                      </div>
-                    </div>
+                    {/* Live Scannable QR Code */}
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(currentConfig.configuration)}`} 
+                      alt="V2Ray QR Code" 
+                      className="w-52 h-52 sm:w-64 sm:h-64 object-contain"
+                    />
                   </div>
                   <p className="text-xs text-center text-muted-foreground max-w-xs leading-relaxed">
-                    This QR code contains your private connection details. Do not share it with anyone.
+                    This QR code contains your private connection details for <strong>{currentConfig.name}</strong>. Do not share it with anyone.
                   </p>
                 </CardContent>
               </Card>
@@ -179,14 +288,19 @@ export default function VPNConfigPage() {
           <TabsContent value="manual" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base font-bold">VLESS Configuration Link</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-bold">VLESS Configuration Link ({currentConfig.name})</CardTitle>
+                  <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary">
+                    {currentConfig.networkName}
+                  </Badge>
+                </div>
                 <CardDescription className="text-xs">Copy this link and import from clipboard into your VPN client</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   <Input 
                     readOnly 
-                    value={vpnConfig.configuration} 
+                    value={currentConfig.configuration} 
                     className="font-mono text-xs bg-muted"
                   />
                   <Button variant="secondary" onClick={copyToClipboard} className="w-24 shrink-0 text-xs">
@@ -198,7 +312,7 @@ export default function VPNConfigPage() {
                 <div className="mt-6 border-t border-border pt-4">
                   <h3 className="font-semibold text-xs mb-1">Server Hostname</h3>
                   <p className="text-xs font-mono text-muted-foreground">
-                    {vpnConfig.server || 'sg-node-01.v2ray.network:443 (Singapore Reality)'}
+                    {currentConfig.server}
                   </p>
                 </div>
               </CardContent>

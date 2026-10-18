@@ -9,13 +9,77 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Plus, Trash2, Save, X, RotateCcw, Server, ShieldCheck, Zap, AlertTriangle, Wifi } from 'lucide-react';
+import { Edit, Plus, Trash2, Save, X, RotateCcw, Server, ShieldCheck, Zap, AlertTriangle, Wifi, HardDrive, CheckCircle2, Calendar } from 'lucide-react';
 import { getIspLogo } from '@/components/marketing/IspLogos';
 
 export default function AdminPackagesPage() {
-  const { packages, addPackage, updatePackage, deletePackage } = useApp();
+  const { 
+    packages, 
+    addPackage, 
+    updatePackage, 
+    deletePackage, 
+    refreshPackages,
+    serverCapacityTb,
+    setServerCapacityTb,
+    getServerBandwidthStats,
+    getEffectiveSlots,
+    lastQuotaResetDate,
+    resetMonthlyQuota,
+  } = useApp();
   
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [capacityInput, setCapacityInput] = useState<string>(String(serverCapacityTb || 20));
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [isResettingQuota, setIsResettingQuota] = useState(false);
+
+  const bandwidthStats = getServerBandwidthStats
+    ? getServerBandwidthStats()
+    : {
+        totalCapacityGb: 20480,
+        totalCapacityTb: 20,
+        usedBandwidthGb: 0,
+        usedBandwidthTb: 0,
+        remainingBandwidthGb: 20480,
+        remainingBandwidthTb: 20,
+        usagePercent: 0,
+      };
+
+  const handleSaveCapacity = () => {
+    const val = parseFloat(capacityInput);
+    if (!isNaN(val) && val > 0) {
+      setServerCapacityTb(val);
+      setSaveSuccessMsg(`Server quota updated to ${val} TB! Live package slot pool recalculated.`);
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
+    }
+  };
+
+  const handleAutoSyncSlotsToDb = async () => {
+    if (confirm(`Do you want to recalculate and persist dynamic slot limits for all active packages to the PostgreSQL database based on current ${bandwidthStats.remainingBandwidthTb} TB remaining server capacity?`)) {
+      for (const pkg of packages) {
+        const liveSlots = getEffectiveSlots ? getEffectiveSlots(pkg) : (pkg.availableSlots || 0);
+        await updatePackage({ ...pkg, availableSlots: liveSlots });
+      }
+      setSaveSuccessMsg('All package slot quotas successfully updated in PostgreSQL database!');
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
+    }
+  };
+
+  const handleManualMonthlyReset = async () => {
+    if (confirm('Are you sure you want to trigger a Monthly Quota Reset? This will reset the monthly bandwidth pool to 0 utilized and restore all package available slots back to full stock in the PostgreSQL database.')) {
+      try {
+        setIsResettingQuota(true);
+        if (resetMonthlyQuota) {
+          await resetMonthlyQuota();
+          setSaveSuccessMsg('Monthly quota and package slots successfully reset in PostgreSQL database!');
+          setTimeout(() => setSaveSuccessMsg(null), 5000);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsResettingQuota(false);
+      }
+    }
+  };
 
   // Edit State
   const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -71,6 +135,23 @@ export default function AdminPackagesPage() {
     }
   };
 
+  const handleTogglePackageStock = async (pkg: Package) => {
+    const isCurrentlyInStock = (pkg.availableSlots ?? 0) > 0;
+    const newSlots = isCurrentlyInStock ? 0 : 50;
+    const updated: Package = {
+      ...pkg,
+      availableSlots: newSlots,
+      badge: newSlots > 0 ? (pkg.popular ? 'POPULAR' : 'ACTIVE') : 'OUT OF STOCK',
+    };
+    await updatePackage(updated);
+    setSaveSuccessMsg(
+      newSlots === 0
+        ? `"${pkg.name}" marked as NOT AVAILABLE (Stock set to 0. Checkout blocked).`
+        : `"${pkg.name}" marked as AVAILABLE (Stock set to 50 slots).`
+    );
+    setTimeout(() => setSaveSuccessMsg(null), 4000);
+  };
+
   const handleSaveAdd = () => {
     if (addForm.name && addForm.price !== undefined) {
       const newPkg: Package = {
@@ -110,12 +191,15 @@ export default function AdminPackagesPage() {
     }
   };
 
-  // Reset to default packages
-  const handleResetDefaults = () => {
-    if (confirm('Are you sure you want to restore all original VPN packages? Custom packages will be replaced.')) {
-      localStorage.setItem('vpn_packages', JSON.stringify(defaultPackages));
-      localStorage.setItem('vpn_packages_ver', 'v4');
-      window.location.reload();
+  // Refresh / Reload packages from Database
+  const handleResetDefaults = async () => {
+    if (confirm('Are you sure you want to refresh packages from the database?')) {
+      if (refreshPackages) {
+        await refreshPackages();
+      } else {
+        localStorage.removeItem('vpn_packages');
+        window.location.reload();
+      }
     }
   };
 
@@ -185,6 +269,168 @@ export default function AdminPackagesPage() {
           )}
         </div>
       </div>
+
+      {/* Server Bandwidth Quota & Dynamic Slot Pool Card */}
+      <Card className="border border-border/80 bg-card/90 shadow-md rounded-2xl overflow-hidden">
+        <div className="p-5 sm:p-6 space-y-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                <HardDrive className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-bold text-foreground">
+                    Upstream Server Bandwidth Capacity
+                  </h3>
+                  <Badge variant="outline" className="border-primary/40 text-primary text-[10px] uppercase font-bold">
+                    Auto-Slot Pool
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Set the maximum bandwidth quota (X TB) of your VPN node. Package slots dynamically adjust as users subscribe.
+                </p>
+              </div>
+            </div>
+
+            {/* Input & Save Form */}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Input
+                  type="number"
+                  min="0.1"
+                  step="0.5"
+                  value={capacityInput}
+                  onChange={(e) => setCapacityInput(e.target.value)}
+                  className="w-28 h-9 text-xs font-bold pl-3 pr-8 rounded-xl"
+                  placeholder="e.g. 20"
+                />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none">
+                  TB
+                </span>
+              </div>
+              <Button size="sm" onClick={handleSaveCapacity} className="h-9 px-4 text-xs font-semibold rounded-xl bg-primary hover:bg-primary/90">
+                <Save className="h-3.5 w-3.5 mr-1.5" />
+                <span>Save Quota</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Feedback banner */}
+          {saveSuccessMsg && (
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span>{saveSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* Bandwidth Usage Progress & Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-muted/40 border border-border/50 space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Total Pool Quota
+              </span>
+              <div className="text-xl sm:text-2xl font-black font-mono text-foreground">
+                {bandwidthStats.totalCapacityTb} TB <span className="text-xs font-normal text-muted-foreground">({bandwidthStats.totalCapacityGb.toLocaleString()} GB)</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-muted/40 border border-border/50 space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Allocated To Active Users
+              </span>
+              <div className="text-xl sm:text-2xl font-black font-mono text-primary">
+                {bandwidthStats.usedBandwidthTb} TB <span className="text-xs font-normal text-muted-foreground">({bandwidthStats.usedBandwidthGb.toLocaleString()} GB)</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-muted/40 border border-border/50 space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Remaining Bandwidth
+              </span>
+              <div className="text-xl sm:text-2xl font-black font-mono text-emerald-400">
+                {bandwidthStats.remainingBandwidthTb} TB <span className="text-xs font-normal text-muted-foreground">({bandwidthStats.remainingBandwidthGb.toLocaleString()} GB)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground font-medium">Bandwidth Utilization</span>
+              <span className="font-bold text-foreground">{bandwidthStats.usagePercent}% utilized</span>
+            </div>
+            <div className="w-full h-2.5 rounded-full bg-muted overflow-hidden border border-border/40">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  bandwidthStats.usagePercent > 90
+                    ? 'bg-rose-500'
+                    : bandwidthStats.usagePercent > 70
+                    ? 'bg-amber-500'
+                    : 'bg-primary'
+                }`}
+                style={{ width: `${Math.min(100, bandwidthStats.usagePercent)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Policy Banner & Quick Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-xs text-foreground/90 bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20">
+              <Zap className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>
+                <strong>Unlimited Package Rule:</strong> Default <strong>500 GB</strong> quota deducted per user.
+              </span>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAutoSyncSlotsToDb}
+              className="text-xs font-semibold rounded-xl border-border/70 hover:bg-primary/10 gap-1.5 shrink-0"
+              title="Push live capacity limits into PostgreSQL packages database"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Sync All Package Slots to Database</span>
+            </Button>
+          </div>
+
+          {/* Monthly Billing Cycle & Reset Controls */}
+          <div className="p-4 rounded-xl bg-muted/40 border border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  Monthly Quota Reset & Billing Cycle
+                </span>
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] font-bold">
+                  Auto-Reset: 1st of Every Month
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Bandwidth consumption resets every month automatically. As an Admin, you can also trigger a manual reset at any time to clear utilized bandwidth and restore package stock in the database.
+              </p>
+              {lastQuotaResetDate && (
+                <p className="text-[10px] text-muted-foreground font-mono pt-0.5">
+                  Last Reset: {new Date(lastQuotaResetDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+            </div>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleManualMonthlyReset}
+              disabled={isResettingQuota}
+              className="text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md gap-1.5 shrink-0 h-10 px-4"
+              title="Reset monthly utilized bandwidth to 0 and restore all package available slots"
+            >
+              <RotateCcw className={`h-3.5 w-3.5 ${isResettingQuota ? 'animate-spin' : ''}`} />
+              <span>{isResettingQuota ? 'Resetting Quotas...' : 'Reset Monthly Quota & Slots Now'}</span>
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       {/* Network / Tier Category Filter Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -682,9 +928,20 @@ export default function AdminPackagesPage() {
                     {pkg.deviceLimit || '1 Device'}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Stock / Slots:</span>
-                  <span className="font-semibold text-foreground">{pkg.availableSlots}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-foreground">{pkg.availableSlots}</span>
+                    {getEffectiveSlots && (
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                        getEffectiveSlots(pkg) <= 0
+                          ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 font-bold'
+                          : 'bg-primary/10 text-primary border-primary/20'
+                      }`}>
+                        Pool: {getEffectiveSlots(pkg)}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">P2P / Torrent:</span>
@@ -703,7 +960,7 @@ export default function AdminPackagesPage() {
               </div>
             </CardContent>
 
-            <div className="p-4 pt-0">
+            <div className="p-4 pt-0 grid grid-cols-2 gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -711,7 +968,31 @@ export default function AdminPackagesPage() {
                 onClick={() => handleEditClick(pkg)}
               >
                 <Edit className="h-3.5 w-3.5" />
-                <span>Edit All Details</span>
+                <span>Edit Details</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleTogglePackageStock(pkg)}
+                className={`w-full text-xs font-semibold gap-1.5 ${
+                  (pkg.availableSlots ?? 0) > 0
+                    ? 'border-destructive/30 text-destructive hover:bg-destructive/10'
+                    : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
+                }`}
+                title={(pkg.availableSlots ?? 0) > 0 ? 'Click to make Out of Stock (Block checkout)' : 'Click to restore stock'}
+              >
+                {(pkg.availableSlots ?? 0) > 0 ? (
+                  <>
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span>Set Out of Stock</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>Set In Stock</span>
+                  </>
+                )}
               </Button>
             </div>
           </Card>

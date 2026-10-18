@@ -16,7 +16,8 @@ import {
   FileText,
   Menu,
   X,
-  ArrowLeft
+  ArrowLeft,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -86,7 +87,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </div>
 
-        <div className="p-4 border-t border-border/40 space-y-2">
+        <div className="p-4 border-t border-border/40 space-y-3">
+          <div className="flex items-center gap-2.5 px-1 py-1">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+              {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-foreground truncate">{user.name}</p>
+                {user.isEmailVerified && (
+                  <span title="Verified Email" className="inline-flex items-center">
+                    <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+            </div>
+          </div>
+
           <Link href="/">
             <Button variant="outline" className="w-full justify-start gap-3 text-foreground text-xs">
               <ArrowLeft className="h-4 w-4" />

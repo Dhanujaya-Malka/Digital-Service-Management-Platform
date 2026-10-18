@@ -94,7 +94,13 @@ function NetworkSelectionContent() {
     }
   }, [searchParams, networkPackages, selectedNetworkPackage, selectNetworkPackage, selectNetwork]);
 
+  const isPkgAvailable = (pkg: NetworkPackage | null | undefined) => Boolean(pkg && pkg.status === 'active');
+
   const handleSelectPackage = (pkg: NetworkPackage) => {
+    if (!isPkgAvailable(pkg)) {
+      alert(`"${pkg.name}" is currently not available / offline. Please select an active route.`);
+      return;
+    }
     setChosenNetworkPkg(pkg);
     selectNetworkPackage(pkg);
     
@@ -107,6 +113,15 @@ function NetworkSelectionContent() {
 
   const handleContinue = () => {
     if (!chosenNetworkPkg || !activePlan) return;
+    if (!isPkgAvailable(chosenNetworkPkg)) {
+      alert('The selected bypass route is currently not available / offline. Please choose an active route to proceed.');
+      return;
+    }
+    if (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0) {
+      alert('This package is currently out of stock. Please choose an active plan from Pricing.');
+      router.push('/pricing');
+      return;
+    }
     if (!user) {
       router.push(`/login?redirect=${encodeURIComponent(`/checkout?plan=${activePlan.id}&networkPackage=${chosenNetworkPkg.id}&network=${chosenNetworkPkg.isp}`)}`);
       return;
@@ -116,8 +131,17 @@ function NetworkSelectionContent() {
 
   const handleDirectContinue = (pkg: NetworkPackage, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (!isPkgAvailable(pkg)) {
+      alert(`"${pkg.name}" is currently not available / offline. Please choose an active route.`);
+      return;
+    }
     handleSelectPackage(pkg);
     if (!activePlan) return;
+    if (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0) {
+      alert('This package is currently out of stock. Please choose an active plan from Pricing.');
+      router.push('/pricing');
+      return;
+    }
     if (!user) {
       router.push(`/login?redirect=${encodeURIComponent(`/checkout?plan=${activePlan.id}&networkPackage=${pkg.id}&network=${pkg.isp}`)}`);
       return;
@@ -288,16 +312,25 @@ function NetworkSelectionContent() {
         {/* Network Packages Grid (Matching Screenshot 2 Cards) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
           {filteredPackages.map((pkg) => {
+            const isAvailable = pkg.status === 'active';
             const isSelected = chosenNetworkPkg?.id === pkg.id;
 
             return (
               <Card
                 key={pkg.id}
-                onClick={() => handleSelectPackage(pkg)}
-                className={`group relative cursor-pointer transition-all duration-300 rounded-2xl p-5 border text-left flex flex-col justify-between overflow-hidden ${
-                  isSelected
-                    ? 'bg-card border-primary ring-2 ring-primary/40 shadow-xl shadow-primary/10 -translate-y-1'
-                    : 'bg-card/75 backdrop-blur-sm border-border/70 hover:border-primary/50 hover:bg-card/90'
+                onClick={() => {
+                  if (isAvailable) {
+                    handleSelectPackage(pkg);
+                  } else {
+                    alert(`"${pkg.name}" is currently not available / offline. Please select another route.`);
+                  }
+                }}
+                className={`group relative transition-all duration-300 rounded-2xl p-5 border text-left flex flex-col justify-between overflow-hidden ${
+                  !isAvailable
+                    ? 'bg-card/40 opacity-60 grayscale-[40%] border-dashed border-border/70 cursor-not-allowed'
+                    : isSelected
+                    ? 'cursor-pointer bg-card border-primary ring-2 ring-primary/40 shadow-xl shadow-primary/10 -translate-y-1'
+                    : 'cursor-pointer bg-card/75 backdrop-blur-sm border-border/70 hover:border-primary/50 hover:bg-card/90'
                 }`}
               >
                 {/* Top Subtle Border Highlight */}
@@ -333,16 +366,25 @@ function NetworkSelectionContent() {
                         </Badge>
                       )}
 
-                      {/* ACTIVE Status Indicator */}
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        ACTIVE
-                      </span>
+                      {/* Status Indicator */}
+                      {isAvailable ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          ACTIVE
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-destructive/15 text-destructive border border-destructive/30">
+                          <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                          NOT AVAILABLE
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {/* Package Name (e.g. SLT ZOOM (Fibre, 4G, ADSL)) */}
-                  <h3 className="font-extrabold text-base text-foreground mb-3 leading-snug group-hover:text-primary transition-colors">
+                  <h3 className={`font-extrabold text-base mb-3 leading-snug transition-colors ${
+                    isAvailable ? 'text-foreground group-hover:text-primary' : 'text-muted-foreground line-through'
+                  }`}>
                     {pkg.name}
                   </h3>
 
@@ -389,7 +431,16 @@ function NetworkSelectionContent() {
                     <span>Ping: {pkg.latency || '30ms - 40ms'}</span>
                   </div>
 
-                  {isSelected ? (
+                  {!isAvailable ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      className="h-8 px-3 rounded-xl text-xs font-bold text-destructive/70 bg-destructive/10 border-destructive/20 cursor-not-allowed"
+                    >
+                      <span>Not Available</span>
+                    </Button>
+                  ) : isSelected ? (
                     <Button
                       size="sm"
                       onClick={(e) => handleDirectContinue(pkg, e)}
@@ -447,10 +498,21 @@ function NetworkSelectionContent() {
           <Button
             size="lg"
             onClick={handleContinue}
-            disabled={!chosenNetworkPkg || !activePlan}
+            disabled={
+              !chosenNetworkPkg || 
+              !activePlan || 
+              chosenNetworkPkg.status !== 'active' || 
+              (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0)
+            }
             className="w-full sm:w-auto h-11 px-8 rounded-xl font-bold text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span>Continue to Payment</span>
+            <span>
+              {activePlan?.availableSlots !== undefined && activePlan.availableSlots <= 0
+                ? 'Plan Out of Stock'
+                : chosenNetworkPkg && chosenNetworkPkg.status !== 'active'
+                ? 'Route Not Available'
+                : 'Continue to Payment'}
+            </span>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>

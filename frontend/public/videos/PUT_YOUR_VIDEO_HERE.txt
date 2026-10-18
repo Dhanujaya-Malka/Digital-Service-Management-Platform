@@ -1,0 +1,21 @@
+========================================================================
+V2NEXUS - HOW TO ADD YOUR VIDEO TUTORIAL
+========================================================================
+
+Obe video file eka me folder ekata copy karanna:
+
+  Path: frontend/public/videos/
+
+Nam thiyanna puluwan widi:
+  1. tutorial.mp4 (Recommended)
+     file: frontend/public/videos/tutorial.mp4
+
+  2. how-to-connect.mp4
+     file: frontend/public/videos/how-to-connect.mp4
+
+Obe video eka methanata "tutorial.mp4" kiyala dammaha website eke "How it works"
+page eke auto play wenna setup karala thiyenne.
+
+Thawa YouTube video ekak unath embed karanna puluwan widiyata How It Works
+page eke code eka hadala thiyenawa.
+========================================================================

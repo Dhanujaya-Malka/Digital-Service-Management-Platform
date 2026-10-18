@@ -104,7 +104,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </div>
 
-        <div className="p-4 border-t border-border/40 space-y-2">
+        <div className="p-4 border-t border-border/40 space-y-3">
+          <div className="flex items-center gap-2.5 px-1 py-1">
+            <div className="h-8 w-8 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive font-bold text-xs shrink-0">
+              SA
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground truncate">{user?.name || 'Super Admin'}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{user?.email || 'admin@v2nexus.lk'}</p>
+            </div>
+          </div>
           <Link href="/">
             <Button variant="outline" className="w-full justify-start gap-3 text-foreground text-xs">
               <ArrowLeft className="h-4 w-4" />

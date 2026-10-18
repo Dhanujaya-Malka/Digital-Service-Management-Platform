@@ -11,6 +11,7 @@ interface AppContextType {
   addPackage: (pkg: Package) => void;
   updatePackage: (pkg: Package) => void;
   deletePackage: (id: string) => void;
+  refreshPackages: () => Promise<void>;
   
   user: User | null;
   isInitialized: boolean;
@@ -49,6 +50,22 @@ interface AppContextType {
   createOrder: (order: Order) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus, adminNotes?: string) => void;
   getOrderById: (orderId: string) => Order | undefined;
+
+  // Server Capacity & Live Bandwidth Quota Management
+  serverCapacityTb: number;
+  setServerCapacityTb: (capacityTb: number) => void;
+  getServerBandwidthStats: () => {
+    totalCapacityGb: number;
+    totalCapacityTb: number;
+    usedBandwidthGb: number;
+    usedBandwidthTb: number;
+    remainingBandwidthGb: number;
+    remainingBandwidthTb: number;
+    usagePercent: number;
+  };
+  getEffectiveSlots: (pkg: Package) => number;
+  lastQuotaResetDate: string | null;
+  resetMonthlyQuota: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -70,22 +87,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [networkPackages, setNetworkPackages] = useState<NetworkPackage[]>(defaultNetworkPackages);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>(defaultPromoCodes);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [serverCapacityTb, setServerCapacityTbState] = useState<number>(20);
+  const [lastQuotaResetDate, setLastQuotaResetDate] = useState<string | null>(null);
 
   useEffect(() => {
-    // Versioned load to ensure new V2Ray fields appear automatically
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+    // 1. Initial quick load from cache or defaults to prevent layout shift
     const packageVersion = localStorage.getItem('vpn_packages_ver');
     const storedPackages = localStorage.getItem('vpn_packages');
-    if (storedPackages && packageVersion === 'v4') {
+    if (storedPackages && packageVersion === 'v5') {
       try {
-        setPackages(JSON.parse(storedPackages));
+        const parsed = JSON.parse(storedPackages);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setPackages(parsed);
+        } else {
+          setPackages(defaultPackages);
+        }
       } catch (e) {
         setPackages(defaultPackages);
       }
     } else {
       setPackages(defaultPackages);
-      localStorage.setItem('vpn_packages', JSON.stringify(defaultPackages));
-      localStorage.setItem('vpn_packages_ver', 'v4');
     }
+
+    // 2. Fetch latest live packages from PostgreSQL database
+    const loadPackagesFromDb = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/packages`);
+        if (res.ok) {
+          const data = await res.json();
+          const dbPackages: Package[] = Array.isArray(data) ? data : (data.packages || []);
+          if (Array.isArray(dbPackages) && dbPackages.length > 0) {
+            setPackages(dbPackages);
+            localStorage.setItem('vpn_packages', JSON.stringify(dbPackages));
+            localStorage.setItem('vpn_packages_ver', 'v5');
+          }
+        }
+      } catch (err) {
+        console.warn('Backend packages API unreachable, using cached packages:', err);
+      }
+    };
+    loadPackagesFromDb();
 
     // Load User
     const storedUser = localStorage.getItem('vpn_user');
@@ -213,25 +256,134 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('vpn_promos_ver', 'v2');
     }
 
+    // Load Server Capacity (default 20 TB)
+    const storedCapacity = localStorage.getItem('vpn_server_capacity_tb');
+    if (storedCapacity) {
+      const parsedCap = parseFloat(storedCapacity);
+      if (!isNaN(parsedCap) && parsedCap > 0) {
+        setServerCapacityTbState(parsedCap);
+      }
+    }
+
+    // Load Last Quota Reset Date
+    const storedResetDate = localStorage.getItem('vpn_last_quota_reset_date');
+    if (storedResetDate) {
+      setLastQuotaResetDate(storedResetDate);
+    } else {
+      const nowIso = new Date().toISOString();
+      setLastQuotaResetDate(nowIso);
+      localStorage.setItem('vpn_last_quota_reset_date', nowIso);
+    }
+
+    // Auto Monthly Reset Check: advance cycle if new calendar month
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const storedMonthKey = localStorage.getItem('vpn_quota_cycle_month');
+    if (storedMonthKey && storedMonthKey !== currentMonthKey) {
+      console.log(`Auto Monthly Quota Reset: billing cycle advanced from ${storedMonthKey} to ${currentMonthKey}`);
+      // Advance cycle and trigger monthly quota reset
+      localStorage.setItem('vpn_quota_cycle_month', currentMonthKey);
+      const nowIso = now.toISOString();
+      setLastQuotaResetDate(nowIso);
+      localStorage.setItem('vpn_last_quota_reset_date', nowIso);
+      fetch(`${API_BASE}/api/admin/reset-monthly-quota`, { method: 'POST' }).catch((e) => console.warn('Auto reset error:', e));
+    } else if (!storedMonthKey) {
+      localStorage.setItem('vpn_quota_cycle_month', currentMonthKey);
+    }
+
     setIsInitialized(true);
   }, []);
 
-  const addPackage = (pkg: Package) => {
+  const refreshPackages = async () => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    try {
+      const res = await fetch(`${API_BASE}/api/packages`);
+      if (res.ok) {
+        const data = await res.json();
+        const dbPackages: Package[] = Array.isArray(data) ? data : (data.packages || []);
+        if (Array.isArray(dbPackages) && dbPackages.length > 0) {
+          setPackages(dbPackages);
+          localStorage.setItem('vpn_packages', JSON.stringify(dbPackages));
+          localStorage.setItem('vpn_packages_ver', 'v5');
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to refresh packages from backend:', err);
+    }
+  };
+
+  const addPackage = async (pkg: Package) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    // Optimistic UI update
     const updated = [...packages, pkg];
     setPackages(updated);
     localStorage.setItem('vpn_packages', JSON.stringify(updated));
+
+    // Save to PostgreSQL database
+    try {
+      const res = await fetch(`${API_BASE}/api/packages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pkg),
+      });
+      if (res.ok) {
+        const savedPkg = await res.json();
+        if (savedPkg && savedPkg.id) {
+          setPackages((prev) => prev.map((p) => (p.id === pkg.id ? savedPkg : p)));
+        }
+      } else {
+        console.error('Failed to create package in database:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error saving package to database:', err);
+    }
   };
 
-  const updatePackage = (updatedPkg: Package) => {
-    const updated = packages.map((p) => p.id === updatedPkg.id ? updatedPkg : p);
+  const updatePackage = async (updatedPkg: Package) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    // Optimistic UI update
+    const updated = packages.map((p) => (p.id === updatedPkg.id ? updatedPkg : p));
     setPackages(updated);
     localStorage.setItem('vpn_packages', JSON.stringify(updated));
+
+    // Update in PostgreSQL database
+    try {
+      const res = await fetch(`${API_BASE}/api/packages/${encodeURIComponent(updatedPkg.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedPkg),
+      });
+      if (res.ok) {
+        const savedPkg = await res.json();
+        if (savedPkg && savedPkg.id) {
+          setPackages((prev) => prev.map((p) => (p.id === updatedPkg.id ? savedPkg : p)));
+        }
+      } else {
+        console.error('Failed to update package in database:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error updating package in database:', err);
+    }
   };
 
-  const deletePackage = (id: string) => {
+  const deletePackage = async (id: string) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    // Optimistic UI update
     const updated = packages.filter((p) => p.id !== id);
     setPackages(updated);
     localStorage.setItem('vpn_packages', JSON.stringify(updated));
+
+    // Soft delete / deactivate in PostgreSQL database
+    try {
+      const res = await fetch(`${API_BASE}/api/packages/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        console.error('Failed to deactivate package in database:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error deactivating package in database:', err);
+    }
   };
 
   const subscribeToPackage = (packageId: string) => {
@@ -335,6 +487,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const updated = [order, ...orders.filter((o) => o.id !== order.id)];
     setOrders(updated);
     localStorage.setItem('vpn_orders', JSON.stringify(updated));
+
+    // Decrement available slots in the database and state
+    const pkg = packages.find((p) => p.id === order.packageId);
+    if (pkg && pkg.availableSlots !== undefined && pkg.availableSlots > 0) {
+      const updatedPkg: Package = {
+        ...pkg,
+        availableSlots: Math.max(0, pkg.availableSlots - 1),
+      };
+      updatePackage(updatedPkg);
+    }
   };
 
   const updateOrderStatus = (orderId: string, newStatus: OrderStatus, adminNotes?: string) => {
@@ -343,6 +505,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     let updatedVpnDetails: VPNConfig | undefined = targetOrder.vpnDetails;
     let vpnProvisioned = targetOrder.vpnProvisioned || false;
+
+    // If order was rejected, restore slot
+    if (newStatus === 'rejected' && targetOrder.status !== 'rejected') {
+      const pkg = packages.find((p) => p.id === targetOrder.packageId);
+      if (pkg) {
+        updatePackage({
+          ...pkg,
+          availableSlots: (pkg.availableSlots !== undefined ? pkg.availableSlots : 0) + 1,
+        });
+      }
+    }
 
     // If approving order, provision VPN credentials and activate subscription if not yet provisioned
     if (newStatus === 'approved' && !vpnProvisioned) {
@@ -395,15 +568,117 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return orders.find((o) => o.id === orderId);
   };
 
-  const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('vpn_user', JSON.stringify(userData));
+  const setServerCapacityTb = (capacityTb: number) => {
+    const valid = Math.max(0.1, Number(capacityTb) || 20);
+    setServerCapacityTbState(valid);
+    localStorage.setItem('vpn_server_capacity_tb', valid.toString());
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('vpn_user');
+  const getServerBandwidthStats = () => {
+    const totalCapacityGb = serverCapacityTb * 1024;
+    const resetTime = lastQuotaResetDate ? new Date(lastQuotaResetDate).getTime() : 0;
+
+    // Only count orders created within the current billing cycle
+    const usedBandwidthGb = orders
+      .filter((o) => {
+        const isEligible = o.status === 'approved' || o.status === 'pending_approval';
+        const orderTime = o.createdAt ? new Date(o.createdAt).getTime() : Date.now();
+        return isEligible && orderTime >= resetTime;
+      })
+      .reduce((sum, order) => {
+        const found = packages.find((p) => p.id === order.packageId);
+        // Assumption: unlimited package allocates default 500 GB
+        const quota = (found && found.trafficLimit > 0) ? found.trafficLimit : 500;
+        return sum + quota;
+      }, 0);
+
+    const remainingBandwidthGb = Math.max(0, totalCapacityGb - usedBandwidthGb);
+    const totalCapacityTb = Number(serverCapacityTb.toFixed(2));
+    const usedBandwidthTb = Number((usedBandwidthGb / 1024).toFixed(2));
+    const remainingBandwidthTb = Number((remainingBandwidthGb / 1024).toFixed(2));
+    const usagePercent = totalCapacityGb > 0 ? Math.min(100, Math.round((usedBandwidthGb / totalCapacityGb) * 100)) : 100;
+
+    return {
+      totalCapacityGb,
+      totalCapacityTb,
+      usedBandwidthGb,
+      usedBandwidthTb,
+      remainingBandwidthGb,
+      remainingBandwidthTb,
+      usagePercent,
+    };
   };
+
+  const resetMonthlyQuota = async () => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    setLastQuotaResetDate(nowIso);
+    localStorage.setItem('vpn_last_quota_reset_date', nowIso);
+    localStorage.setItem('vpn_quota_cycle_month', currentMonthKey);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/reset-monthly-quota`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        await refreshPackages();
+      }
+    } catch (err) {
+      console.warn('Backend reset-monthly-quota unavailable, applying local reset fallback:', err);
+      const defaultSlots: Record<string, number> = {
+        'basic-50gb': 150,
+        'basic-100gb': 120,
+        'basic-200gb': 95,
+        'standard-250gb': 90,
+        'standard-300gb': 85,
+        'standard-400gb': 75,
+        'premium-500gb': 65,
+        'premium-750gb': 50,
+        'premium-1000gb': 40,
+        'ultimate-1500gb': 35,
+        'ultimate-2000gb': 25,
+      };
+      const restored = packages.map((p) => ({
+        ...p,
+        availableSlots: defaultSlots[p.id] !== undefined ? defaultSlots[p.id] : 100,
+      }));
+      setPackages(restored);
+      localStorage.setItem('vpn_packages', JSON.stringify(restored));
+    }
+  };
+
+  const getEffectiveSlots = (pkg: Package): number => {
+    const stats = getServerBandwidthStats();
+    // User rule: unlimited package assumes default 500GB
+    const pkgQuota = (pkg.trafficLimit && pkg.trafficLimit > 0) ? pkg.trafficLimit : 500;
+    const maxCapacitySlots = Math.floor(stats.remainingBandwidthGb / pkgQuota);
+
+    const configuredSlots = pkg.availableSlots !== undefined ? pkg.availableSlots : 100;
+    return Math.max(0, Math.min(configuredSlots, maxCapacitySlots));
+  };
+
+  
+const login = (userData: User) => {
+  setUser(userData);
+
+  localStorage.setItem(
+    'vpn_user',
+    JSON.stringify(userData)
+  );
+};
+
+const logout = () => {
+  setUser(null);
+
+  localStorage.removeItem('vpn_user');
+  localStorage.removeItem('authToken');
+
+  // Remove legacy demo authentication data if present.
+  localStorage.removeItem('token');
+};
 
   return (
     <AppContext.Provider
@@ -412,6 +687,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addPackage,
         updatePackage,
         deletePackage,
+        refreshPackages,
         user,
         isInitialized,
         login,
@@ -440,6 +716,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         createOrder,
         updateOrderStatus,
         getOrderById,
+        serverCapacityTb,
+        setServerCapacityTb,
+        getServerBandwidthStats,
+        getEffectiveSlots,
+        lastQuotaResetDate,
+        resetMonthlyQuota,
       }}
     >
       {children}

@@ -3,6 +3,7 @@ export interface User {
   name: string;
   email: string;
   role: 'user' | 'admin';
+  isEmailVerified?: boolean;
 }
 
 export interface Package {
@@ -21,6 +22,8 @@ export interface Package {
   p2pTorrent?: 'Allowed' | 'Restricted';
   speedLimit?: string; // e.g., 'No Speed Limit'
   badge?: string; // e.g., 'ACTIVE', 'POPULAR', 'HOT'
+  status?: 'active' | 'inactive';
+  isActive?: boolean;
 }
 
 export interface Subscription {
@@ -62,7 +65,7 @@ export interface NetworkPackage {
   name: string;
   isp: 'slt' | 'dialog' | 'hutch' | 'airtel' | 'mobitel';
   ispName: string;
-  status: 'active' | 'maintenance';
+  status: 'active' | 'maintenance' | 'offline';
   serverLocation: string; // e.g. 'SG SERVER'
   validity: string; // e.g. '1 Month'
   p2pTorrent: 'Allowed' | 'Restricted';

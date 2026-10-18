@@ -92,7 +92,7 @@ export default function AdminNetworkPackagesPage() {
         name: editForm.name || 'Custom Bypass Route',
         isp: (editForm.isp as any) || 'slt',
         ispName: selectedIspObj.name,
-        status: (editForm.status as 'active' | 'maintenance') || 'active',
+        status: (editForm.status as 'active' | 'maintenance' | 'offline') || 'active',
         serverLocation: editForm.serverLocation || 'SG SERVER',
         validity: editForm.validity || '1 Month',
         p2pTorrent: (editForm.p2pTorrent as 'Allowed' | 'Restricted') || 'Restricted',
@@ -110,6 +110,20 @@ export default function AdminNetworkPackagesPage() {
     }
   };
 
+  const handleToggleStatus = (pkg: NetworkPackage) => {
+    const nextStatus = pkg.status === 'active' ? 'offline' : 'active';
+    const updated: NetworkPackage = {
+      ...pkg,
+      status: nextStatus,
+    };
+    updateNetworkPackage(updated);
+    showNotification(
+      nextStatus === 'active'
+        ? `"${pkg.name}" is now ACTIVE (Users can purchase).`
+        : `"${pkg.name}" marked as NOT AVAILABLE (Checkout blocked).`
+    );
+  };
+
   const handleSaveAdd = () => {
     if (!addForm.name?.trim()) return;
 
@@ -119,7 +133,7 @@ export default function AdminNetworkPackagesPage() {
       name: addForm.name.trim(),
       isp: (addForm.isp as any) || 'slt',
       ispName: selectedIspObj.name,
-      status: (addForm.status as 'active' | 'maintenance') || 'active',
+      status: (addForm.status as 'active' | 'maintenance' | 'offline') || 'active',
       serverLocation: addForm.serverLocation || 'SG SERVER',
       validity: addForm.validity || '1 Month',
       p2pTorrent: (addForm.p2pTorrent as 'Allowed' | 'Restricted') || 'Restricted',
@@ -411,7 +425,52 @@ export default function AdminNetworkPackagesPage() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-6 pt-2">
+            {/* Availability Option */}
+            <div className="p-3.5 rounded-xl border border-border/70 bg-muted/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-foreground">Route Availability Status</Label>
+                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                  addForm.status === 'active'
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-destructive/15 text-destructive border border-destructive/30'
+                }`}>
+                  {addForm.status === 'active' ? '● AVAILABLE FOR USERS' : '● NOT AVAILABLE (BLOCKED)'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAddForm({ ...addForm, status: 'active' })}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    addForm.status === 'active'
+                      ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400 shadow-sm'
+                      : 'bg-card border-border text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Available (Active)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddForm({ ...addForm, status: 'offline' })}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    addForm.status !== 'active'
+                      ? 'bg-destructive/15 border-destructive text-destructive shadow-sm'
+                      : 'bg-card border-border text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span>Not Available (Offline)</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {addForm.status === 'active'
+                  ? '✓ Customers can select this network bypass route during checkout.'
+                  : '⛔ Customers cannot select or continue payment for this route.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-6 pt-1">
               <label className="flex items-center gap-2 cursor-pointer text-xs font-medium">
                 <input
                   type="checkbox"
@@ -420,16 +479,6 @@ export default function AdminNetworkPackagesPage() {
                   className="rounded border-border"
                 />
                 <span>Highlight as Popular</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium">
-                <input
-                  type="checkbox"
-                  checked={addForm.status === 'active'}
-                  onChange={(e) => setAddForm({ ...addForm, status: e.target.checked ? 'active' : 'maintenance' })}
-                  className="rounded border-border"
-                />
-                <span>Active for Customer Selection</span>
               </label>
             </div>
 
@@ -527,7 +576,52 @@ export default function AdminNetworkPackagesPage() {
                   />
                 </div>
 
-                <div className="flex items-center gap-4 text-xs pt-1">
+                {/* Route Availability Status */}
+                <div className="p-3 rounded-xl border border-border/70 bg-muted/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[11px] font-bold text-foreground">Route Availability Status</Label>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                      editForm.status === 'active'
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-destructive/15 text-destructive border border-destructive/30'
+                    }`}>
+                      {editForm.status === 'active' ? '● AVAILABLE' : '● NOT AVAILABLE (BLOCKED)'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, status: 'active' })}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        editForm.status === 'active'
+                          ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400 shadow-sm'
+                          : 'bg-card border-border text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>Available</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, status: 'offline' })}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        editForm.status !== 'active'
+                          ? 'bg-destructive/15 border-destructive text-destructive shadow-sm'
+                          : 'bg-card border-border text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <span>Not Available</span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {editForm.status === 'active'
+                      ? '✓ Customers can select this route during checkout.'
+                      : '⛔ Customers are blocked from selecting this route & cannot pay.'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs pt-0.5">
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input
                       type="checkbox"
@@ -535,17 +629,7 @@ export default function AdminNetworkPackagesPage() {
                       onChange={(e) => setEditForm({ ...editForm, popular: e.target.checked })}
                       className="rounded border-border"
                     />
-                    <span>Popular</span>
-                  </label>
-
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editForm.status === 'active'}
-                      onChange={(e) => setEditForm({ ...editForm, status: e.target.checked ? 'active' : 'maintenance' })}
-                      className="rounded border-border"
-                    />
-                    <span>Active</span>
+                    <span>Highlight as Popular</span>
                   </label>
                 </div>
 
@@ -597,13 +681,13 @@ export default function AdminNetworkPackagesPage() {
                       </Badge>
                     )}
 
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
                       pkg.status === 'active'
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-muted text-muted-foreground border border-border'
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-destructive/15 text-destructive border border-destructive/30'
                     }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${pkg.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-muted-foreground'}`} />
-                      {pkg.status === 'active' ? 'ACTIVE' : 'OFFLINE'}
+                      <span className={`h-1.5 w-1.5 rounded-full ${pkg.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-destructive'}`} />
+                      {pkg.status === 'active' ? 'ACTIVE' : 'NOT AVAILABLE'}
                     </span>
                   </div>
                 </div>
@@ -644,16 +728,42 @@ export default function AdminNetworkPackagesPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEditClick(pkg)}
-                  className="h-8 text-xs gap-1.5 rounded-lg border-border/80 hover:bg-muted"
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                  <span>Edit</span>
-                </Button>
+              <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between gap-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditClick(pkg)}
+                    className="h-8 text-xs gap-1.5 rounded-lg border-border/80 hover:bg-muted"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    <span>Edit</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleToggleStatus(pkg)}
+                    className={`h-8 text-[11px] gap-1 rounded-lg font-semibold ${
+                      pkg.status === 'active'
+                        ? 'border-destructive/30 text-destructive hover:bg-destructive/10'
+                        : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
+                    }`}
+                    title={pkg.status === 'active' ? 'Click to make Not Available (Block checkout)' : 'Click to make Available (Active)'}
+                  >
+                    {pkg.status === 'active' ? (
+                      <>
+                        <AlertTriangle className="h-3 w-3" />
+                        <span>Set Offline</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span>Set Active</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
 
                 <Button
                   variant="ghost"
