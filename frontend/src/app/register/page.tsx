@@ -66,8 +66,8 @@ const handleFormSubmit = async (e: React.FormEvent) => {
     return;
   }
 
-  if (password.length < 12) {
-    setError("Password must be at least 12 characters long.");
+  if (password.length < 6) {
+    setError("Password must be at least 6 characters long.");
     return;
   }
 
@@ -96,6 +96,10 @@ const handleFormSubmit = async (e: React.FormEvent) => {
     if (!response.ok) {
       setError(data.message || "Registration failed.");
       return;
+    }
+
+    if (data.otp || data.devOtp) {
+      setDemoOtp(data.otp || data.devOtp);
     }
 
     setStep("verify");
@@ -191,6 +195,10 @@ const handleResendOtp = async () => {
     if (!response.ok) {
       setError(data.message || "Could not resend verification code.");
       return;
+    }
+
+    if (data.otp || data.devOtp) {
+      setDemoOtp(data.otp || data.devOtp);
     }
 
     setOtpCode("");
@@ -370,12 +378,21 @@ const handleResendOtp = async () => {
         {step === 'verify' && (
           <form className="space-y-4" onSubmit={handleVerifyOtp}>
             {/* Demo Code Helper Pill */}
-            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary flex items-center justify-between">
-              <span>Demo OTP Code:</span>
-              <span className="font-mono font-bold text-sm bg-primary/20 px-2.5 py-0.5 rounded-lg text-primary tracking-widest">
-                {demoOtp}
-              </span>
-            </div>
+            {demoOtp && (
+              <div 
+                onClick={() => setOtpCode(demoOtp)}
+                className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary flex items-center justify-between cursor-pointer hover:bg-primary/20 transition-all select-none"
+                title="Click to auto-fill verification code"
+              >
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Verification Code (Click to paste):
+                </span>
+                <span className="font-mono font-bold text-sm bg-primary/20 px-2.5 py-0.5 rounded-lg text-primary tracking-widest hover:scale-105 transition-transform">
+                  {demoOtp}
+                </span>
+              </div>
+            )}
 
             <div>
               <label className="text-xs font-semibold text-foreground">Enter 6-Digit Code</label>

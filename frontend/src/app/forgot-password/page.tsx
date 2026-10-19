@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Shield, KeyRound, Mail, CheckCircle2, ArrowLeft,
-  ArrowRight, Lock, RefreshCw, MessageSquare, Eye, EyeOff
+  ArrowRight, Lock, RefreshCw, MessageSquare, Eye, EyeOff, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ export default function ForgotPasswordPage() {
   const [step, setStep] = useState<Step>('request');
   const [email, setEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  const [demoOtp, setDemoOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -69,6 +70,10 @@ export default function ForgotPasswordPage() {
 
       if (!response.ok) {
         throw new Error(data.message || 'Could not send the reset code.');
+      }
+
+      if (data.otp || data.devOtp) {
+        setDemoOtp(data.otp || data.devOtp);
       }
 
       setEmail(cleanEmail);
@@ -232,6 +237,22 @@ export default function ForgotPasswordPage() {
 
         {step === 'verify' && (
           <form className="space-y-4" onSubmit={handleVerifySubmit}>
+            {demoOtp && (
+              <div 
+                onClick={() => setOtpCode(demoOtp)}
+                className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary flex items-center justify-between cursor-pointer hover:bg-primary/20 transition-all select-none"
+                title="Click to auto-fill reset code"
+              >
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Reset Code (Click to paste):
+                </span>
+                <span className="font-mono font-bold text-sm bg-primary/20 px-2.5 py-0.5 rounded-lg text-primary tracking-widest hover:scale-105 transition-transform">
+                  {demoOtp}
+                </span>
+              </div>
+            )}
+
             <div>
               <label className="text-xs font-semibold text-foreground">6-Digit Code</label>
               <Input
