@@ -55,9 +55,10 @@ export default function VPNConfigPage() {
           `vpn-${order.id.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
         const cleanNet = netName.replace(/[^a-zA-Z0-9]/g, '');
         const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
+        const targetSni = (order.sni || 'aka.ms').trim();
         const configuration = order.vpnDetails?.configuration ||
-          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-${cleanNet}-${cleanPkg}`;
-        const server = order.vpnDetails?.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)';
+          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}#Cyberx-${cleanNet}-${cleanPkg}`;
+        const server = order.vpnDetails?.server || `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`;
 
         list.push({
           id: order.id,

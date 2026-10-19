@@ -92,6 +92,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: false,
+    sni: 'www.zoom.com',
     features: [
       'No Speed Limit',
       'Works with Meet Lite/Max',
@@ -113,6 +114,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: true,
+    sni: 'www.netflix.com',
     features: [
       'Works with 1990 Netflix package',
       'No Speed Limit',
@@ -134,6 +136,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: false,
+    sni: 'www.zoom.com',
     features: [
       'No Speed Limit',
       'SLT 4G Prepaid only',
@@ -159,6 +162,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: true,
+    sni: 'aka.ms',
     features: [
       'Dialog Home Broadband Router',
       'No Speed Limit',
@@ -167,7 +171,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     ],
     supportedProtocols: ['VLESS + Reality', 'WebSocket TLS'],
     latency: '32ms - 42ms',
-    description: 'Optimized SNI tunneling for Dialog Home Broadband 4G WiFi Routers.',
+    description: 'Optimized SNI tunneling for Dialog Home Broadband 4G WiFi Routers using aka.ms.',
   },
   {
     id: 'dialog-sim-zoom-724',
@@ -180,6 +184,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'Speed Limited (724 Plan)',
     popular: false,
+    sni: 'www.zoom.com',
     features: [
       'Dialog Mobile SIM 4G',
       '724 Unlimited Plan',
@@ -188,7 +193,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     ],
     supportedProtocols: ['VLESS + Reality', 'WebSocket TLS'],
     latency: '34ms - 45ms',
-    description: 'Specifically engineered for the Dialog 724 Zoom & Video unlimited prepaid SIM package.',
+    description: 'Specifically engineered for the Dialog 724 Zoom & Video unlimited prepaid SIM package with www.zoom.com SNI.',
   },
   {
     id: 'dialog-social',
@@ -201,6 +206,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: false,
+    sni: 'm.facebook.com',
     features: [
       'Dialog Social Media Pack',
       'Facebook / WhatsApp / YouTube',
@@ -226,6 +232,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: true,
+    sni: 'm.facebook.com',
     features: [
       'Hutch Social Unlimited / Cliq',
       'No Speed Limit',
@@ -247,6 +254,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: false,
+    sni: 'www.tiktok.com',
     features: [
       'Hutch TikTok Add-on',
       'No Speed Limit',
@@ -272,6 +280,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: true,
+    sni: 'www.tiktok.com',
     features: [
       'Airtel TikTok Unlimited Pack',
       'Ultra Low Latency Route',
@@ -293,6 +302,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: false,
+    sni: 'm.facebook.com',
     features: [
       'Airtel Unlimited Social Bundles',
       'Works with WhatsApp / FB pack',
@@ -314,6 +324,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: false,
+    sni: 'aka.ms',
     features: [
       'Airtel Freedom & Data Packs',
       'Dedicated Singapore IP',
@@ -339,6 +350,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: true,
+    sni: 'www.youtube.com',
     features: [
       'Mobitel OneShot Ultra Pack',
       'Direct Singapore SG Route (30ms)',
@@ -360,6 +372,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: false,
+    sni: 'www.zoom.com',
     features: [
       'Mobitel Zoom / Teams / eLearning',
       '4G Mobile & Pocket WiFi',
@@ -381,6 +394,7 @@ export const defaultNetworkPackages: NetworkPackage[] = [
     p2pTorrent: 'Restricted',
     speedLimit: 'No Speed Limit',
     popular: false,
+    sni: 'm.facebook.com',
     features: [
       'Mobitel Social Media Addon',
       'Facebook / WhatsApp / Instagram',

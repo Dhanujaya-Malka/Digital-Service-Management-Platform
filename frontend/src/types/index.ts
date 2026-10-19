@@ -24,6 +24,7 @@ export interface Package {
   badge?: string; // e.g., 'ACTIVE', 'POPULAR', 'HOT'
   status?: 'active' | 'inactive';
   isActive?: boolean;
+  sni?: string; // Bypass SNI domain, e.g. 'aka.ms', 'www.zoom.com'
 }
 
 export interface Subscription {
@@ -75,6 +76,7 @@ export interface NetworkPackage {
   supportedProtocols: string[];
   latency?: string;
   description?: string;
+  sni?: string; // Bypass SNI domain, e.g. 'aka.ms', 'www.zoom.com'
 }
 
 export interface PromoCode {
@@ -113,6 +115,7 @@ export interface Order {
   networkName: string;
   networkPackageId?: string;
   networkPackageName?: string;
+  sni?: string; // Bypass SNI domain, e.g. 'aka.ms', 'www.zoom.com'
   promoCode?: string;
   discountAmount: number;
   finalAmount: number;

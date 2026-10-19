@@ -559,11 +559,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const subId = `vpn-${Math.random().toString(36).substring(2, 10)}${Date.now().toString(36)}`;
         const cleanNet = targetOrder.networkName.replace(/[^a-zA-Z0-9]/g, '');
         const cleanPkg = targetOrder.packageName.replace(/[^a-zA-Z0-9]/g, '-');
+        const targetSni = (targetOrder.sni || 'aka.ms').trim();
         
         updatedVpnDetails = {
-          server: 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
+          server: `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`,
           status: 'connected',
-          configuration: `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-${cleanNet}-${cleanPkg}`,
+          configuration: `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}#Cyberx-${cleanNet}-${cleanPkg}`,
           qrCode: 'active-v2ray-qr',
         };
       }

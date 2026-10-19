@@ -289,10 +289,11 @@ function CheckoutContent() {
 
       const isFreeGift = finalPrice === 0 && appliedPromo?.discountType === 'gift_100';
 
+      const targetSni = (activeNetworkPkg?.sni || activePlan?.sni || 'aka.ms').trim();
       const cleanNet = (activeNetwork?.name || activeNetworkPkg?.ispName || 'SLT').replace(/[^a-zA-Z0-9]/g, '');
       const cleanPkg = (activePlan.name || 'Pro').replace(/[^a-zA-Z0-9]/g, '-');
       const clientUuid = `${randomDigits}e7a-3f4b-48c2-a912-${Date.now().toString(16).padStart(12, '0')}`;
-      const vlessUrl = `vless://${clientUuid}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-${cleanNet}-${cleanPkg}`;
+      const vlessUrl = `vless://${clientUuid}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}#Cyberx-${cleanNet}-${cleanPkg}`;
 
       const newOrder: Order = {
         id: orderId,
@@ -310,6 +311,7 @@ function CheckoutContent() {
         networkName: activeNetwork?.name || activeNetworkPkg?.ispName || 'SLT',
         networkPackageId: activeNetworkPkg?.id,
         networkPackageName: activeNetworkPkg?.name,
+        sni: targetSni,
         promoCode: appliedPromo?.code,
         discountAmount,
         finalAmount: finalPrice,
@@ -329,7 +331,7 @@ function CheckoutContent() {
           ? 'Free trial voucher verified. Instant trial access active.'
           : 'Automated AI Receipt Check Passed: Standard bank transaction slip structure & metadata verified. Provisional VLESS access granted.',
         vpnDetails: {
-          server: 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
+          server: `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`,
           status: 'connected',
           configuration: vlessUrl,
           qrCode: 'active-v2ray-qr',

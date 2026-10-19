@@ -104,8 +104,9 @@ export default function DashboardOverview() {
           `vpn-${order.id.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
         const cleanNet = netName.replace(/[^a-zA-Z0-9]/g, '');
         const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
+        const targetSni = (order.sni || 'aka.ms').trim();
         const vlessUrl = order.vpnDetails?.configuration || 
-          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-${cleanNet}-${cleanPkg}`;
+          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}#Cyberx-${cleanNet}-${cleanPkg}`;
 
         list.push({
           id: order.id,
@@ -122,7 +123,7 @@ export default function DashboardOverview() {
           expiryDate: expiry,
           daysRemaining: diffDays,
           subscriptionId: subId,
-          serverLocation: order.vpnDetails?.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
+          serverLocation: order.vpnDetails?.server || `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`,
           vlessUrl,
           isProvisional: Boolean(order.isProvisional && order.status === 'pending_approval'),
           status: order.status,

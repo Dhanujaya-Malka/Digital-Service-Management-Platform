@@ -25,7 +25,8 @@ import {
   Calendar,
   AlertTriangle,
   Radio,
-  Sparkles
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { getIspLogo } from '@/components/marketing/IspLogos';
 
@@ -60,6 +61,7 @@ export default function AdminNetworkPackagesPage() {
     features: ['No Speed Limit', 'Works with Zoom / Teams', 'Unlimited Device Login'],
     supportedProtocols: ['VLESS + Reality', 'WebSocket TLS'],
     description: '',
+    sni: 'aka.ms',
   });
 
   const showNotification = (msg: string) => {
@@ -81,6 +83,7 @@ export default function AdminNetworkPackagesPage() {
       ...pkg,
       features: [...pkg.features],
       supportedProtocols: [...pkg.supportedProtocols],
+      sni: pkg.sni || 'aka.ms',
     });
   };
 
@@ -102,11 +105,12 @@ export default function AdminNetworkPackagesPage() {
         features: editForm.features?.filter(f => f.trim() !== '') || [],
         supportedProtocols: editForm.supportedProtocols?.filter(p => p.trim() !== '') || ['VLESS + Reality', 'WebSocket TLS'],
         description: editForm.description || '',
+        sni: editForm.sni && editForm.sni.trim() ? editForm.sni.trim() : 'aka.ms',
       };
 
       updateNetworkPackage(updated);
       setIsEditing(null);
-      showNotification(`Updated "${updated.name}" successfully.`);
+      showNotification(`Updated "${updated.name}" successfully (SNI: ${updated.sni}).`);
     }
   };
 
@@ -143,6 +147,7 @@ export default function AdminNetworkPackagesPage() {
       features: addForm.features?.filter(f => f.trim() !== '') || ['No Speed Limit', 'Unlimited Device Login'],
       supportedProtocols: addForm.supportedProtocols?.filter(p => p.trim() !== '') || ['VLESS + Reality', 'WebSocket TLS'],
       description: addForm.description || '',
+      sni: addForm.sni && addForm.sni.trim() ? addForm.sni.trim() : 'aka.ms',
     };
 
     addNetworkPackage(newPkg);
@@ -161,8 +166,9 @@ export default function AdminNetworkPackagesPage() {
       features: ['No Speed Limit', 'Works with Zoom / Teams', 'Unlimited Device Login'],
       supportedProtocols: ['VLESS + Reality', 'WebSocket TLS'],
       description: '',
+      sni: 'aka.ms',
     });
-    showNotification(`Added new bypass package "${newPkg.name}".`);
+    showNotification(`Added new network route "${newPkg.name}" with SNI "${newPkg.sni}".`);
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -410,6 +416,22 @@ export default function AdminNetworkPackagesPage() {
               </div>
             </div>
 
+            <div className="p-3.5 rounded-xl border border-destructive/30 bg-destructive/5 space-y-1">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Globe className="h-4 w-4 text-destructive" />
+                <span>Bypass SNI Domain (Host / ServerName)</span>
+              </Label>
+              <Input
+                placeholder="e.g. aka.ms, www.zoom.com, www.netflix.com, m.facebook.com"
+                value={addForm.sni || 'aka.ms'}
+                onChange={(e) => setAddForm({ ...addForm, sni: e.target.value })}
+                className="mt-1 h-10 text-xs rounded-xl font-mono bg-background border-destructive/40 font-bold text-foreground"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Crucial for ISP package bypass. The generated client connection VLESS link will contain <code className="text-destructive font-mono">&sni={addForm.sni || 'aka.ms'}</code>.
+              </p>
+            </div>
+
             <div>
               <Label className="text-xs font-semibold">
                 Feature Badges (comma separated)
@@ -564,6 +586,22 @@ export default function AdminNetworkPackagesPage() {
                   </div>
                 </div>
 
+                <div className="space-y-1 p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                  <Label className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                    <Globe className="h-3 w-3 text-destructive" />
+                    <span>Bypass SNI Domain (Host)</span>
+                  </Label>
+                  <Input
+                    value={editForm.sni || 'aka.ms'}
+                    placeholder="e.g. aka.ms, www.zoom.com, m.facebook.com"
+                    onChange={(e) => setEditForm({ ...editForm, sni: e.target.value })}
+                    className="h-8 text-xs rounded-lg font-mono bg-background border-destructive/30 font-bold text-foreground"
+                  />
+                  <span className="text-[10px] text-muted-foreground block">
+                    VLESS clients connecting through this route will send this exact SNI.
+                  </span>
+                </div>
+
                 <div className="space-y-1">
                   <Label className="text-[11px] font-semibold">Feature Tags (comma separated)</Label>
                   <Input
@@ -710,6 +748,14 @@ export default function AdminNetworkPackagesPage() {
                   <div className="flex justify-between">
                     <span>Average Ping:</span>
                     <span className="font-medium text-emerald-400">{pkg.latency || '32ms'}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1 border-t border-border/40">
+                    <span className="text-destructive font-bold text-[11px] flex items-center gap-1">
+                      <Globe className="h-3 w-3" /> Bypass SNI:
+                    </span>
+                    <span className="font-mono text-xs font-bold text-foreground bg-background px-2 py-0.5 rounded border border-border shadow-xs">
+                      {pkg.sni || 'aka.ms'}
+                    </span>
                   </div>
                 </div>
 
