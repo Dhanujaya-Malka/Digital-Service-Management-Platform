@@ -105,7 +105,7 @@ export default function DashboardOverview() {
         const cleanNet = netName.replace(/[^a-zA-Z0-9]/g, '');
         const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
         const vlessUrl = order.vpnDetails?.configuration || 
-          `vless://${subId}@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#${cleanNet}-${cleanPkg}`;
+          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-${cleanNet}-${cleanPkg}`;
 
         list.push({
           id: order.id,
@@ -122,7 +122,7 @@ export default function DashboardOverview() {
           expiryDate: expiry,
           daysRemaining: diffDays,
           subscriptionId: subId,
-          serverLocation: order.vpnDetails?.server || 'sg-node-01.v2ray.network:443 (Singapore Reality)',
+          serverLocation: order.vpnDetails?.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
           vlessUrl,
           isProvisional: Boolean(order.isProvisional && order.status === 'pending_approval'),
           status: order.status,
@@ -156,8 +156,8 @@ export default function DashboardOverview() {
         expiryDate: expiry,
         daysRemaining: diffDays,
         subscriptionId: subscription.id,
-        serverLocation: vpnConfig?.server || 'sg-node-01.v2ray.network:443 (Singapore SG-01)',
-        vlessUrl: vpnConfig?.configuration || `vless://${subscription.id}@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#v2nexus-primary`,
+        serverLocation: vpnConfig?.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
+        vlessUrl: vpnConfig?.configuration || `vless://${subscription.id}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-v2nexus-primary`,
       });
     }
 

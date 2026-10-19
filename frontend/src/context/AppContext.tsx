@@ -561,9 +561,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const cleanPkg = targetOrder.packageName.replace(/[^a-zA-Z0-9]/g, '-');
         
         updatedVpnDetails = {
-          server: 'sg-node-01.v2ray.network (Singapore High-Speed)',
+          server: 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
           status: 'connected',
-          configuration: `vless://${subId}@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#${cleanNet}-${cleanPkg}`,
+          configuration: `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-${cleanNet}-${cleanPkg}`,
           qrCode: 'active-v2ray-qr',
         };
       }

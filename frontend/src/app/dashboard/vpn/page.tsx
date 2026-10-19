@@ -56,8 +56,8 @@ export default function VPNConfigPage() {
         const cleanNet = netName.replace(/[^a-zA-Z0-9]/g, '');
         const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
         const configuration = order.vpnDetails?.configuration ||
-          `vless://${subId}@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#${cleanNet}-${cleanPkg}`;
-        const server = order.vpnDetails?.server || 'sg-node-01.v2ray.network:443 (Singapore Reality)';
+          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-${cleanNet}-${cleanPkg}`;
+        const server = order.vpnDetails?.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)';
 
         list.push({
           id: order.id,
@@ -74,7 +74,7 @@ export default function VPNConfigPage() {
         id: subscription?.id || 'default-vpn',
         name: 'V2Ray High-Speed VPN',
         networkName: 'SLT & Dialog Bypass',
-        server: vpnConfig.server || 'sg-node-01.v2ray.network:443 (Singapore Reality)',
+        server: vpnConfig.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
         configuration: vpnConfig.configuration,
         subscriptionId: subscription?.id || 'vpn-default-sub',
       });

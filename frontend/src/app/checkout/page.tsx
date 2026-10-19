@@ -291,8 +291,8 @@ function CheckoutContent() {
 
       const cleanNet = (activeNetwork?.name || activeNetworkPkg?.ispName || 'SLT').replace(/[^a-zA-Z0-9]/g, '');
       const cleanPkg = (activePlan.name || 'Pro').replace(/[^a-zA-Z0-9]/g, '-');
-      const subId = `vpn-${randomDigits.toString(36)}${Date.now().toString(36).slice(-4)}`;
-      const vlessUrl = `vless://${subId}@sg-node-01.v2ray.network:443?encryption=none&security=reality&type=grpc#${cleanNet}-${cleanPkg}`;
+      const clientUuid = `${randomDigits}e7a-3f4b-48c2-a912-${Date.now().toString(16).padStart(12, '0')}`;
+      const vlessUrl = `vless://${clientUuid}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-${cleanNet}-${cleanPkg}`;
 
       const newOrder: Order = {
         id: orderId,
@@ -329,7 +329,7 @@ function CheckoutContent() {
           ? 'Free trial voucher verified. Instant trial access active.'
           : 'Automated AI Receipt Check Passed: Standard bank transaction slip structure & metadata verified. Provisional VLESS access granted.',
         vpnDetails: {
-          server: 'sg-node-01.v2ray.network:443 (Singapore Reality)',
+          server: 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
           status: 'connected',
           configuration: vlessUrl,
           qrCode: 'active-v2ray-qr',
