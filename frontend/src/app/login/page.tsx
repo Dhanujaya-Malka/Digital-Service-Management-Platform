@@ -146,12 +146,12 @@ function LoginContent() {
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Email or Username</label>
+              <label className="text-sm font-medium">Email Address</label>
               <Input 
                 type="text" 
                 required 
                 className="mt-1 h-12" 
-                placeholder="you@example.com or superadmin"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -212,12 +212,6 @@ function LoginContent() {
             >
               <span>⚡ One-Click Demo Login (Customer Dashboard)</span>
             </Button>
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-              <span>Admin credentials?</span>
-              <Link href="/admin/login" className="text-primary hover:underline font-semibold">
-                Go to Admin Portal →
-              </Link>
-            </div>
           </div>
         </form>
 

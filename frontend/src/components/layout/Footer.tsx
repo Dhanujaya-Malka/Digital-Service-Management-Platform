@@ -63,9 +63,7 @@ export default function Footer() {
           <div className="flex items-center gap-4">
             <span>Designed for Privacy</span>
             <span>•</span>
-            <Link href="/admin/login" className="text-muted-foreground/70 hover:text-destructive transition-colors flex items-center gap-1 font-medium">
-              <span>Admin Portal</span>
-            </Link>
+            <span>Zero-Logs Encrypted Network</span>
           </div>
         </div>
       </div>
