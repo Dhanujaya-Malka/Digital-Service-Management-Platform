@@ -294,7 +294,7 @@ function CheckoutContent() {
       const cleanNet = (activeNetwork?.name || activeNetworkPkg?.ispName || 'SLT').replace(/[^a-zA-Z0-9]/g, '');
       const cleanPkg = (activePlan.name || 'Pro').replace(/[^a-zA-Z0-9]/g, '-');
       const clientUuid = `${randomDigits}e7a-3f4b-48c2-a912-${Date.now().toString(16).padStart(12, '0')}`;
-      let vlessUrl = `vless://${clientUuid}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}#Cyberx-${cleanNet}-${cleanPkg}`;
+      let vlessUrl = `vless://${clientUuid}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}&alpn=h2,http/1.1#Cyberx-${cleanNet}-${cleanPkg}`;
       let serverLocation = `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`;
 
       // Call live backend to provision client on 3X-UI VPS
@@ -319,6 +319,9 @@ function CheckoutContent() {
           const resData = await provisionRes.json();
           if (resData.vlessUrl) {
             vlessUrl = resData.vlessUrl;
+            if (!vlessUrl.includes('alpn=')) {
+              vlessUrl = vlessUrl.replace('#', '&alpn=h2,http/1.1#');
+            }
           }
           if (resData.serverLocation) {
             serverLocation = resData.serverLocation;

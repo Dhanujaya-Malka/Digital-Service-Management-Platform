@@ -125,8 +125,11 @@ export default function DashboardOverview() {
         const cleanNet = netName.replace(/[^a-zA-Z0-9]/g, '');
         const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
         const targetSni = (order.sni || 'aka.ms').trim();
-        const vlessUrl = order.vpnDetails?.configuration || 
-          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}#Cyberx-${cleanNet}-${cleanPkg}`;
+        let vlessUrl = order.vpnDetails?.configuration || 
+          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}&alpn=h2,http/1.1#Cyberx-${cleanNet}-${cleanPkg}`;
+        if (vlessUrl && !vlessUrl.includes('alpn=')) {
+          vlessUrl = vlessUrl.replace('#', '&alpn=h2,http/1.1#');
+        }
 
         list.push({
           id: order.id,
@@ -147,7 +150,7 @@ export default function DashboardOverview() {
           expiryDate: expiry,
           daysRemaining: diffDays,
           subscriptionId: subId,
-          serverLocation: order.vpnDetails?.server || `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`,
+          serverLocation: order.vpnDetails?.server || `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni} | ALPN: h2,http/1.1)`,
           vlessUrl,
           isProvisional: Boolean(order.isProvisional && order.status === 'pending_approval'),
           status: order.status,
@@ -167,6 +170,11 @@ export default function DashboardOverview() {
       const rem = Math.max(0, parseFloat((limit - used).toFixed(2)));
       const pct = Math.min(100, Math.round((used / limit) * 100));
 
+      let vlessUrl = vpnConfig?.configuration || `vless://${subscription.id}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=virtual-internet-access.duckdns.org&alpn=h2,http/1.1#Cyberx-v2nexus-primary`;
+      if (vlessUrl && !vlessUrl.includes('alpn=')) {
+        vlessUrl = vlessUrl.replace('#', '&alpn=h2,http/1.1#');
+      }
+
       list.push({
         id: subscription.id,
         name: activePkg?.name || 'V2Ray Service',
@@ -185,8 +193,8 @@ export default function DashboardOverview() {
         expiryDate: expiry,
         daysRemaining: diffDays,
         subscriptionId: subscription.id,
-        serverLocation: vpnConfig?.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
-        vlessUrl: vpnConfig?.configuration || `vless://${subscription.id}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&sni=virtual-internet-access.duckdns.org#Cyberx-v2nexus-primary`,
+        serverLocation: vpnConfig?.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | ALPN: h2,http/1.1)',
+        vlessUrl,
       });
     }
 

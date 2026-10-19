@@ -207,6 +207,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem('vpn_config');
           setVpnConfig(null);
         } else {
+          if (parsedVpn?.configuration && !parsedVpn.configuration.includes('alpn=')) {
+            parsedVpn.configuration = parsedVpn.configuration.replace('#', '&alpn=h2,http/1.1#');
+            localStorage.setItem('vpn_config', JSON.stringify(parsedVpn));
+          }
           setVpnConfig(parsedVpn);
         }
       } catch (e) {
@@ -255,11 +259,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('vpn_net_packages_ver', 'v1');
     }
 
-    // Load Orders from localStorage
+    // Load Orders from localStorage with automatic ALPN upgrade
     const storedOrders = localStorage.getItem('vpn_orders');
     if (storedOrders) {
       try {
-        setOrders(JSON.parse(storedOrders));
+        const parsedOrders = JSON.parse(storedOrders);
+        if (Array.isArray(parsedOrders)) {
+          const upgradedOrders = parsedOrders.map((o: Order) => {
+            if (o.vpnDetails?.configuration && !o.vpnDetails.configuration.includes('alpn=')) {
+              return {
+                ...o,
+                vpnDetails: {
+                  ...o.vpnDetails,
+                  configuration: o.vpnDetails.configuration.replace('#', '&alpn=h2,http/1.1#'),
+                },
+              };
+            }
+            return o;
+          });
+          setOrders(upgradedOrders);
+          localStorage.setItem('vpn_orders', JSON.stringify(upgradedOrders));
+        }
       } catch (e) {}
     }
 
@@ -748,7 +768,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updatedVpnDetails = {
           server: `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`,
           status: 'connected',
-          configuration: `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}#Cyberx-${cleanNet}-${cleanPkg}`,
+          configuration: `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}&alpn=h2,http/1.1#Cyberx-${cleanNet}-${cleanPkg}`,
           qrCode: 'active-v2ray-qr',
         };
       }

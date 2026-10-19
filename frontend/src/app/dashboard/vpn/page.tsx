@@ -56,9 +56,12 @@ export default function VPNConfigPage() {
         const cleanNet = netName.replace(/[^a-zA-Z0-9]/g, '');
         const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
         const targetSni = (order.sni || 'aka.ms').trim();
-        const configuration = order.vpnDetails?.configuration ||
-          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}#Cyberx-${cleanNet}-${cleanPkg}`;
-        const server = order.vpnDetails?.server || `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`;
+        let configuration = order.vpnDetails?.configuration ||
+          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}&alpn=h2,http/1.1#Cyberx-${cleanNet}-${cleanPkg}`;
+        if (configuration && !configuration.includes('alpn=')) {
+          configuration = configuration.replace('#', '&alpn=h2,http/1.1#');
+        }
+        const server = order.vpnDetails?.server || `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni} | ALPN: h2,http/1.1)`;
 
         list.push({
           id: order.id,
@@ -71,12 +74,16 @@ export default function VPNConfigPage() {
         });
       });
     } else if (vpnConfig && vpnConfig.configuration) {
+      let configuration = vpnConfig.configuration;
+      if (configuration && !configuration.includes('alpn=')) {
+        configuration = configuration.replace('#', '&alpn=h2,http/1.1#');
+      }
       list.push({
         id: subscription?.id || 'default-vpn',
         name: 'V2Ray High-Speed VPN',
         networkName: 'SLT & Dialog Bypass',
-        server: vpnConfig.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS)',
-        configuration: vpnConfig.configuration,
+        server: vpnConfig.server || 'virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | ALPN: h2,http/1.1)',
+        configuration,
         subscriptionId: subscription?.id || 'vpn-default-sub',
       });
     }
@@ -377,11 +384,33 @@ export default function VPNConfigPage() {
                   </Button>
                 </div>
                 
-                <div className="mt-6 border-t border-border pt-4">
-                  <h3 className="font-semibold text-xs mb-1">Server Hostname</h3>
-                  <p className="text-xs font-mono text-muted-foreground">
+                <div className="mt-6 border-t border-border pt-4 space-y-3">
+                  <h3 className="font-semibold text-xs mb-1">Server Hostname & Node Details</h3>
+                  <p className="text-xs font-mono text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50">
                     {currentConfig.server}
                   </p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+                    <div className="p-2.5 rounded-xl bg-card border border-border/60">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Protocol</span>
+                      <span className="text-xs font-mono font-bold text-foreground">VLESS</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-card border border-border/60">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Transport / Network</span>
+                      <span className="text-xs font-mono font-bold text-foreground">gRPC (grpc-service)</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-card border border-border/60">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">Security / Port</span>
+                      <span className="text-xs font-mono font-bold text-foreground">TLS / Port 443</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-card border border-emerald-500/30 bg-emerald-500/5">
+                      <span className="text-[10px] uppercase font-bold text-emerald-400 block flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        ALPN Setting
+                      </span>
+                      <span className="text-xs font-mono font-black text-emerald-400">h2,http/1.1</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
