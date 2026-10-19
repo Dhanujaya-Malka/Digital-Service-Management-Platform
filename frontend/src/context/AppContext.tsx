@@ -292,6 +292,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     setIsInitialized(true);
+    refreshPackages();
+    refreshNetworkPackages();
   }, []);
 
   const refreshPackages = async () => {
@@ -309,6 +311,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.warn('Failed to refresh packages from backend:', err);
+    }
+  };
+
+  const refreshNetworkPackages = async () => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    try {
+      const res = await fetch(`${API_BASE}/api/network-packages`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setNetworkPackages(data);
+          localStorage.setItem('vpn_net_packages', JSON.stringify(data));
+          localStorage.setItem('vpn_net_packages_ver', 'v2');
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to refresh network packages from backend:', err);
     }
   };
 
@@ -414,22 +433,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('vpn_selected_net_package', JSON.stringify(networkPkg));
   };
 
-  const addNetworkPackage = (pkg: NetworkPackage) => {
+  const addNetworkPackage = async (pkg: NetworkPackage) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const updated = [...networkPackages, pkg];
     setNetworkPackages(updated);
     localStorage.setItem('vpn_net_packages', JSON.stringify(updated));
+
+    try {
+      await fetch(`${API_BASE}/api/network-packages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pkg),
+      });
+    } catch (err) {
+      console.warn('Failed to save network package to database:', err);
+    }
   };
 
-  const updateNetworkPackage = (updatedPkg: NetworkPackage) => {
+  const updateNetworkPackage = async (updatedPkg: NetworkPackage) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const updated = networkPackages.map((p) => p.id === updatedPkg.id ? updatedPkg : p);
     setNetworkPackages(updated);
     localStorage.setItem('vpn_net_packages', JSON.stringify(updated));
+
+    try {
+      await fetch(`${API_BASE}/api/network-packages/${encodeURIComponent(updatedPkg.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedPkg),
+      });
+    } catch (err) {
+      console.warn('Failed to update network package in database:', err);
+    }
   };
 
-  const deleteNetworkPackage = (id: string) => {
+  const deleteNetworkPackage = async (id: string) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const updated = networkPackages.filter((p) => p.id !== id);
     setNetworkPackages(updated);
     localStorage.setItem('vpn_net_packages', JSON.stringify(updated));
+
+    try {
+      await fetch(`${API_BASE}/api/network-packages/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.warn('Failed to delete network package from database:', err);
+    }
   };
 
   const clearCheckoutSelection = () => {
@@ -524,11 +574,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let vpnProvisioned = targetOrder.vpnProvisioned || false;
     let isProvisional = targetOrder.isProvisional || false;
 
-    // If order was rejected, restore slot and revoke VPN access immediately
+    // If order was rejected, restore slot and revoke VPN access immediately from 3X-UI VPS
     if (newStatus === 'rejected') {
       isProvisional = false;
       vpnProvisioned = false;
       updatedVpnDetails = undefined;
+
+      // Revoke client immediately from live 3X-UI VPS panel
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const sanitizedEmail = (targetOrder.customerEmail || 'user').replace(/[^a-zA-Z0-9]/g, '').slice(0, 15);
+      const clientEmail = `${targetOrder.id}-${sanitizedEmail}`;
+      const clientUuid = targetOrder.vpnDetails?.configuration?.split('@')?.[0]?.replace('vless://', '');
+
+      fetch(`${API_BASE}/api/vpn/revoke`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: clientEmail, uuid: clientUuid }),
+      }).catch((err) => console.warn('Failed to revoke 3X-UI client:', err));
 
       if (targetOrder.status !== 'rejected') {
         const pkg = packages.find((p) => p.id === targetOrder.packageId);
