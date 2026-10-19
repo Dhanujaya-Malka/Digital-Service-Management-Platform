@@ -22,6 +22,17 @@ interface AppContextType {
   subscribeToPackage: (packageId: string) => void;
   usage: Usage | null;
   vpnConfig: VPNConfig | null;
+  orderUsageMap: Record<string, {
+    upload: number;
+    download: number;
+    total: number;
+    uploadBytes: number;
+    downloadBytes: number;
+    totalBytes: number;
+    formattedUsed: string;
+    formattedUp: string;
+    formattedDown: string;
+  }>;
 
   // Checkout & Multi-Step Flow State
   selectedPlan: Package | null;
@@ -78,6 +89,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Mock data for dashboard
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
+  const [orderUsageMap, setOrderUsageMap] = useState<Record<string, {
+    upload: number;
+    download: number;
+    total: number;
+    uploadBytes: number;
+    downloadBytes: number;
+    totalBytes: number;
+    formattedUsed: string;
+    formattedUp: string;
+    formattedDown: string;
+  }>>({});
   const [vpnConfig, setVpnConfig] = useState<VPNConfig | null>(null);
 
   // Checkout Flow state
@@ -295,6 +317,106 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refreshPackages();
     refreshNetworkPackages();
   }, []);
+
+  // Live 3X-UI VPS Traffic Polling (Every 5 seconds for Real-Time Updates)
+  useEffect(() => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+    const formatBytes = (bytes: number): string => {
+      if (!bytes || bytes <= 0) return '0.00 MB';
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    };
+
+    const pollLiveTraffic = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/vpn/traffic-all`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const stats = data.stats || {};
+
+        let cumulativeUp = 0;
+        let cumulativeDown = 0;
+        const newMap: Record<string, any> = {};
+
+        // 1. Match active customer orders
+        orders.forEach((order) => {
+          const sanitizedEmail = (order.customerEmail || 'user').replace(/[^a-zA-Z0-9]/g, '').slice(0, 15);
+          const clientEmail = `${order.id}-${sanitizedEmail}`.toLowerCase();
+          const uuid = (order.vpnDetails?.configuration?.split('@')?.[0]?.replace('vless://', '') || '').toLowerCase();
+
+          const stat = stats[uuid] || stats[clientEmail] || stats[order.id.toLowerCase()];
+          if (stat) {
+            const upB = Number(stat.up) || 0;
+            const downB = Number(stat.down) || 0;
+            const totB = upB + downB;
+
+            const upGb = Number((upB / (1024 * 1024 * 1024)).toFixed(3));
+            const downGb = Number((downB / (1024 * 1024 * 1024)).toFixed(3));
+            const totGb = Number((totB / (1024 * 1024 * 1024)).toFixed(3));
+
+            const entry = {
+              upload: upGb,
+              download: downGb,
+              total: totGb,
+              uploadBytes: upB,
+              downloadBytes: downB,
+              totalBytes: totB,
+              formattedUsed: formatBytes(totB),
+              formattedUp: formatBytes(upB),
+              formattedDown: formatBytes(downB),
+            };
+
+            newMap[order.id] = entry;
+            if (uuid) newMap[uuid] = entry;
+
+            // Accumulate traffic for the customer
+            cumulativeUp += upB;
+            cumulativeDown += downB;
+          }
+        });
+
+        // 2. If single subscription exists and no orders matched
+        if (subscription && cumulativeUp === 0 && cumulativeDown === 0) {
+          const subUuid = (subscription.id || '').toLowerCase();
+          const stat = stats[subUuid];
+          if (stat) {
+            cumulativeUp += (Number(stat.up) || 0);
+            cumulativeDown += (Number(stat.down) || 0);
+          }
+        }
+
+        const totalB = cumulativeUp + cumulativeDown;
+        const totalGb = Number((totalB / (1024 * 1024 * 1024)).toFixed(3));
+        const upGb = Number((cumulativeUp / (1024 * 1024 * 1024)).toFixed(3));
+        const downGb = Number((cumulativeDown / (1024 * 1024 * 1024)).toFixed(3));
+
+        setOrderUsageMap(newMap);
+
+        const activeUsage: Usage = {
+          upload: upGb,
+          download: downGb,
+          total: totalGb,
+          uploadBytes: cumulativeUp,
+          downloadBytes: cumulativeDown,
+          totalBytes: totalB,
+          formattedUsed: formatBytes(totalB),
+          formattedUp: formatBytes(cumulativeUp),
+          formattedDown: formatBytes(cumulativeDown),
+        };
+
+        setUsage(activeUsage);
+        localStorage.setItem('vpn_usage', JSON.stringify(activeUsage));
+      } catch (err) {
+        // Keep cached stats if offline
+      }
+    };
+
+    pollLiveTraffic();
+    const interval = setInterval(pollLiveTraffic, 5000);
+    return () => clearInterval(interval);
+  }, [orders, subscription]);
 
   const refreshPackages = async () => {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -797,6 +919,7 @@ const logout = () => {
         subscription,
         subscribeToPackage,
         usage,
+        orderUsageMap,
         vpnConfig,
         selectedPlan,
         selectedNetwork,

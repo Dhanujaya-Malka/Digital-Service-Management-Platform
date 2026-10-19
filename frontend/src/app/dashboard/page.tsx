@@ -40,6 +40,10 @@ interface ActivePackageItem {
   usedGb: number;
   uploadGb: number;
   downloadGb: number;
+  totalBytes?: number;
+  formattedUsed?: string;
+  formattedUp?: string;
+  formattedDown?: string;
   remainingGb: number;
   usagePercent: number;
   expiryDate: Date | null;
@@ -52,13 +56,11 @@ interface ActivePackageItem {
 }
 
 export default function DashboardOverview() {
-  const { user, subscription, usage, vpnConfig, packages, orders } = useApp();
+  const { user, subscription, usage, vpnConfig, packages, orders, orderUsageMap } = useApp();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [selectedPackageIndex, setSelectedPackageIndex] = useState<number>(0);
   const [qrModalPackage, setQrModalPackage] = useState<ActivePackageItem | null>(null);
-
-  const [liveTrafficMap, setLiveTrafficMap] = useState<Record<string, { upGb: number; downGb: number; totalGb: number }>>({});
 
   // Extract all approved or provisional orders with active VPN for this customer
   const userApprovedOrders = useMemo(() => {
@@ -70,49 +72,12 @@ export default function DashboardOverview() {
     );
   }, [orders, user?.email]);
 
-  // Fetch live traffic from 3X-UI VPS panel for each customer order
-  useEffect(() => {
-    if (!userApprovedOrders.length) return;
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-    const fetchTraffic = async () => {
-      for (const order of userApprovedOrders) {
-        try {
-          const sanitizedEmail = (order.customerEmail || 'user').replace(/[^a-zA-Z0-9]/g, '').slice(0, 15);
-          const clientEmail = `${order.id}-${sanitizedEmail}`;
-          const res = await fetch(`${API_BASE}/api/vpn/traffic/${encodeURIComponent(clientEmail)}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data?.traffic?.obj) {
-              const upBytes = data.traffic.obj.up || 0;
-              const downBytes = data.traffic.obj.down || 0;
-              const totalBytes = upBytes + downBytes;
-              const upGb = parseFloat((upBytes / (1024 * 1024 * 1024)).toFixed(2));
-              const downGb = parseFloat((downBytes / (1024 * 1024 * 1024)).toFixed(2));
-              const totalGb = parseFloat((totalBytes / (1024 * 1024 * 1024)).toFixed(2));
-              setLiveTrafficMap((prev) => ({
-                ...prev,
-                [order.id]: { upGb, downGb, totalGb },
-              }));
-            }
-          }
-        } catch (e) {
-          // Gracefully fallback to simulated stats
-        }
-      }
-    };
-
-    fetchTraffic();
-    const interval = setInterval(fetchTraffic, 30000); // refresh every 30s
-    return () => clearInterval(interval);
-  }, [userApprovedOrders]);
-
   // Build the list of active packages (multiple if user bought multiple)
   const activePackagesList = useMemo<ActivePackageItem[]>(() => {
     const list: ActivePackageItem[] = [];
 
     if (userApprovedOrders.length > 0) {
-      userApprovedOrders.forEach((order, index) => {
+      userApprovedOrders.forEach((order) => {
         const matchedPkg = packages.find((p) => p.id === order.packageId);
         const pkgName = order.packageName || matchedPkg?.name || 'V2Ray High-Speed VPN';
         const netName = order.networkPackageName || order.networkName || 'Sri Lanka Bypass';
@@ -125,16 +90,31 @@ export default function DashboardOverview() {
         const isUnlimited = limitGb === 0 || !matchedPkg?.trafficLimit || matchedPkg.trafficLimit === 0;
         if (isUnlimited) limitGb = 500; // default 500 GB assumption for unlimited plans
 
-        // Deterministic realistic per-package usage breakdown (or live 3X-UI VPS metrics if recorded)
-        const seed = Math.abs(order.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + (index * 43));
-        const simUpload = parseFloat(((seed % 70) / 10 + 1.4).toFixed(1));
-        const simDownload = parseFloat(((seed % 280) / 10 + 5.8).toFixed(1));
-        const live = liveTrafficMap[order.id];
-        const upload = live && live.totalGb > 0 ? live.upGb : simUpload;
-        const download = live && live.totalGb > 0 ? live.downGb : simDownload;
-        const used = parseFloat((upload + download).toFixed(1));
-        const remaining = Math.max(0, parseFloat((limitGb - used).toFixed(1)));
-        const pct = Math.min(100, Math.round((used / limitGb) * 100));
+        const subId = order.vpnDetails?.configuration?.split('@')?.[0]?.replace('vless://', '') || 
+          `vpn-${order.id.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        const uuid = subId.toLowerCase();
+
+        // Real-time live 3X-UI VPS metrics from centralized poller (or customer total)
+        const live = orderUsageMap[order.id] || orderUsageMap[uuid] || (usage && (usage.totalBytes ?? 0) > 0 ? {
+          upload: usage.upload,
+          download: usage.download,
+          total: usage.total,
+          totalBytes: usage.totalBytes ?? 0,
+          formattedUsed: usage.formattedUsed || `${usage.total.toFixed(2)} GB`,
+          formattedUp: usage.formattedUp || `${usage.upload.toFixed(2)} GB`,
+          formattedDown: usage.formattedDown || `${usage.download.toFixed(2)} GB`,
+        } : null);
+
+        const upload = live ? live.upload : 0.0;
+        const download = live ? live.download : 0.0;
+        const used = live ? live.total : 0.0;
+        const totalBytes = live ? live.totalBytes : 0;
+        const formattedUsed = live?.formattedUsed || (used > 0 ? `${used.toFixed(2)} GB` : '0.00 MB');
+        const formattedUp = live?.formattedUp || (upload > 0 ? `${upload.toFixed(2)} GB` : '0.00 MB');
+        const formattedDown = live?.formattedDown || (download > 0 ? `${download.toFixed(2)} GB` : '0.00 MB');
+
+        const remaining = Math.max(0, parseFloat((limitGb - used).toFixed(2)));
+        const pct = limitGb > 0 ? Math.min(100, Math.round((used / limitGb) * 100)) : 0;
 
         const orderDate = new Date(order.createdAt || Date.now());
         const expiry = new Date(orderDate.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -142,8 +122,6 @@ export default function DashboardOverview() {
         const diffTime = Math.max(0, expiry.getTime() - today.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        const subId = order.vpnDetails?.configuration?.split('@')?.[0]?.replace('vless://', '') || 
-          `vpn-${order.id.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
         const cleanNet = netName.replace(/[^a-zA-Z0-9]/g, '');
         const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
         const targetSni = (order.sni || 'aka.ms').trim();
@@ -160,6 +138,10 @@ export default function DashboardOverview() {
           usedGb: used,
           uploadGb: upload,
           downloadGb: download,
+          totalBytes,
+          formattedUsed,
+          formattedUp,
+          formattedDown,
           remainingGb: remaining,
           usagePercent: pct,
           expiryDate: expiry,
@@ -172,17 +154,17 @@ export default function DashboardOverview() {
         });
       });
     } else if (subscription) {
-      // Fallback single legacy mock subscription
+      // Fallback single legacy subscription
       const activePkg = packages.find((p) => p.id === subscription.packageId) || packages[0];
       const expiry = subscription.expiryDate ? new Date(subscription.expiryDate) : null;
       const today = new Date();
       const diffDays = expiry ? Math.ceil(Math.max(0, expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0;
       const limit = activePkg?.trafficLimit && activePkg.trafficLimit > 0 ? activePkg.trafficLimit : 500;
       const isUnl = !activePkg?.trafficLimit || activePkg.trafficLimit === 0;
-      const used = usage?.total ?? 14.2;
-      const up = usage?.upload ?? 3.4;
-      const down = usage?.download ?? 10.8;
-      const rem = Math.max(0, limit - used);
+      const used = usage?.total ?? 0.0;
+      const up = usage?.upload ?? 0.0;
+      const down = usage?.download ?? 0.0;
+      const rem = Math.max(0, parseFloat((limit - used).toFixed(2)));
       const pct = Math.min(100, Math.round((used / limit) * 100));
 
       list.push({
@@ -194,6 +176,10 @@ export default function DashboardOverview() {
         usedGb: used,
         uploadGb: up,
         downloadGb: down,
+        totalBytes: usage?.totalBytes,
+        formattedUsed: usage?.formattedUsed || `${used.toFixed(2)} GB`,
+        formattedUp: usage?.formattedUp || `${up.toFixed(2)} GB`,
+        formattedDown: usage?.formattedDown || `${down.toFixed(2)} GB`,
         remainingGb: rem,
         usagePercent: pct,
         expiryDate: expiry,
@@ -205,7 +191,7 @@ export default function DashboardOverview() {
     }
 
     return list;
-  }, [userApprovedOrders, subscription, usage, vpnConfig, packages]);
+  }, [userApprovedOrders, subscription, usage, vpnConfig, packages, orderUsageMap]);
 
   const hasAnyPackages = activePackagesList.length > 0;
   const currentPackage = hasAnyPackages
@@ -379,7 +365,7 @@ export default function DashboardOverview() {
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
                     isSelected ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
                   }`}>
-                    {pkg.usedGb} / {pkg.trafficLimitGb} GB
+                    {pkg.formattedUsed || `${pkg.usedGb} GB`} / {pkg.trafficLimitGb} GB
                   </span>
                 </button>
               );
@@ -542,15 +528,21 @@ export default function DashboardOverview() {
                       />
                     </svg>
                     <div className="absolute flex flex-col items-center text-center">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">USED</span>
-                      <span className="text-xl font-black text-foreground">{currentPackage.usedGb.toFixed(1)} GB</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1 justify-center">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        LIVE USED
+                      </span>
+                      <span className="text-xl font-black text-foreground">
+                        {currentPackage.formattedUsed || `${currentPackage.usedGb.toFixed(2)} GB`}
+                      </span>
                       <span className="text-[10px] text-muted-foreground">
                         of {currentPackage.trafficLimitGb > 0 ? `${currentPackage.trafficLimitGb} GB` : '500 GB'}
                       </span>
                     </div>
                   </div>
-                  <div className="mt-2 text-xs font-bold text-primary">
-                    {currentPackage.usagePercent}% used
+                  <div className="mt-2 text-xs font-bold text-primary flex items-center gap-1">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    <span>{currentPackage.usagePercent}% used</span>
                   </div>
                 </div>
               )}
@@ -561,12 +553,18 @@ export default function DashboardOverview() {
           {/* Bottom Card: DATA USAGE OVERVIEW FOR CURRENT PACKAGE */}
           {currentPackage && (
             <Card className="bg-card/90 border-border/60 rounded-2xl p-6 backdrop-blur-md shadow-lg space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/90 flex items-center gap-2">
                   <Activity className="h-4 w-4 text-primary" />
                   <span>DATA USAGE OVERVIEW ({currentPackage.name})</span>
                 </h3>
-                <span className="text-xs text-muted-foreground">Reset cycle: Monthly</span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    3X-UI VPS Live Sync (5s)
+                  </span>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">Reset: Monthly</span>
+                </div>
               </div>
 
               {/* 4 Stat Tiles */}
@@ -577,7 +575,7 @@ export default function DashboardOverview() {
                     <ArrowUp className="h-4 w-4" />
                   </div>
                   <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">UPLOAD</span>
-                  <span className="text-base font-extrabold text-foreground">{currentPackage.uploadGb.toFixed(1)} GB</span>
+                  <span className="text-base font-extrabold text-foreground">{currentPackage.formattedUp || `${currentPackage.uploadGb.toFixed(2)} GB`}</span>
                 </div>
 
                 {/* Download */}
@@ -586,7 +584,7 @@ export default function DashboardOverview() {
                     <ArrowDown className="h-4 w-4" />
                   </div>
                   <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">DOWNLOAD</span>
-                  <span className="text-base font-extrabold text-foreground">{currentPackage.downloadGb.toFixed(1)} GB</span>
+                  <span className="text-base font-extrabold text-foreground">{currentPackage.formattedDown || `${currentPackage.downloadGb.toFixed(2)} GB`}</span>
                 </div>
 
                 {/* Used */}
@@ -595,7 +593,7 @@ export default function DashboardOverview() {
                     <Activity className="h-4 w-4" />
                   </div>
                   <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">USED</span>
-                  <span className="text-base font-extrabold text-foreground">{currentPackage.usedGb.toFixed(1)} GB</span>
+                  <span className="text-base font-extrabold text-foreground">{currentPackage.formattedUsed || `${currentPackage.usedGb.toFixed(2)} GB`}</span>
                 </div>
 
                 {/* Remaining */}
@@ -752,8 +750,9 @@ export default function DashboardOverview() {
                   <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-2.5 mb-4">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-foreground">Usage Quota</span>
-                      <span className="font-mono font-bold text-primary">
-                        {pkg.usedGb.toFixed(1)} GB / {pkg.trafficLimitGb} GB ({pkg.usagePercent}%)
+                      <span className="font-mono font-bold text-primary flex items-center gap-1.5">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        {pkg.formattedUsed || `${pkg.usedGb.toFixed(1)} GB`} / {pkg.trafficLimitGb} GB ({pkg.usagePercent}%)
                       </span>
                     </div>
 
@@ -767,11 +766,11 @@ export default function DashboardOverview() {
                     <div className="grid grid-cols-3 gap-2 pt-1 text-[11px] text-center">
                       <div className="bg-background/60 p-1.5 rounded-lg border border-border/30">
                         <span className="text-muted-foreground block text-[10px]">Upload</span>
-                        <span className="font-semibold text-foreground">{pkg.uploadGb} GB</span>
+                        <span className="font-semibold text-foreground">{pkg.formattedUp || `${pkg.uploadGb} GB`}</span>
                       </div>
                       <div className="bg-background/60 p-1.5 rounded-lg border border-border/30">
                         <span className="text-muted-foreground block text-[10px]">Download</span>
-                        <span className="font-semibold text-foreground">{pkg.downloadGb} GB</span>
+                        <span className="font-semibold text-foreground">{pkg.formattedDown || `${pkg.downloadGb} GB`}</span>
                       </div>
                       <div className="bg-background/60 p-1.5 rounded-lg border border-border/30">
                         <span className="text-muted-foreground block text-[10px]">Remaining</span>

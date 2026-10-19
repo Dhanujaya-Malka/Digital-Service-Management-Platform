@@ -39,6 +39,12 @@ export interface Usage {
   upload: number; // in GB
   download: number; // in GB
   total: number; // in GB
+  uploadBytes?: number;
+  downloadBytes?: number;
+  totalBytes?: number;
+  formattedUsed?: string;
+  formattedUp?: string;
+  formattedDown?: string;
 }
 
 export interface VPNConfig {
