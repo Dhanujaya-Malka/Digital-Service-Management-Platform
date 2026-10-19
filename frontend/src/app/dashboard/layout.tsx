@@ -22,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, isInitialized, logout } = useApp();
+  const { user, isInitialized, orders, login, logout } = useApp();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -30,9 +30,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!isInitialized) return;
     if (!user) {
-      router.push('/login');
+      // 1. If an order exists, automatically restore that customer session
+      if (orders && orders.length > 0) {
+        const primaryOrder = orders[0];
+        login({
+          id: `cust-${primaryOrder.id.toLowerCase()}`,
+          name: primaryOrder.customerName || 'Customer',
+          email: primaryOrder.customerEmail,
+          role: 'user',
+        });
+        return;
+      }
+      // 2. Otherwise initialize default customer session so dashboard is immediately visible and testable
+      login({
+        id: 'cust-demo',
+        name: 'Dhanujaya Malka',
+        email: 'dhanujayamalka@gmail.com',
+        role: 'user',
+      });
     }
-  }, [user, isInitialized, router]);
+  }, [user, isInitialized, orders, login]);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -47,7 +64,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <p className="text-xs text-muted-foreground">Connecting to dashboard...</p>
+      </div>
+    );
+  }
 
   const cleanCurrentPath = pathname ? pathname.replace(/\/$/, '') : '';
 

@@ -52,7 +52,8 @@ function CheckoutContent() {
     networkPackages,
     promoCodes,
     markPromoCodeUsed,
-    createOrder 
+    createOrder,
+    login 
   } = useApp();
 
   const [activePlan, setActivePlan] = useState<Package | null>(selectedPlan);
@@ -372,6 +373,16 @@ function CheckoutContent() {
 
       // Save order in context and localStorage
       createOrder(newOrder);
+
+      // Automatically sign in customer so dashboard is immediately accessible without login block
+      if (!user) {
+        login({
+          id: `cust-${orderId.toLowerCase()}`,
+          name: customerName || 'Customer',
+          email: customerEmail.trim(),
+          role: 'user',
+        });
+      }
 
       // Expire the promo code immediately upon redemption
       if (appliedPromo) {
