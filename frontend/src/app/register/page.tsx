@@ -24,7 +24,6 @@ function RegisterContent() {
   
   // OTP Verification States
   const [otpCode, setOtpCode] = useState('');
-  const [demoOtp, setDemoOtp] = useState('');
   const [resendCountdown, setResendCountdown] = useState(30);
   const [canResend, setCanResend] = useState(false);
   
@@ -96,10 +95,6 @@ const handleFormSubmit = async (e: React.FormEvent) => {
     if (!response.ok) {
       setError(data.message || "Registration failed.");
       return;
-    }
-
-    if (data.otp || data.devOtp) {
-      setDemoOtp(data.otp || data.devOtp);
     }
 
     setStep("verify");
@@ -195,10 +190,6 @@ const handleResendOtp = async () => {
     if (!response.ok) {
       setError(data.message || "Could not resend verification code.");
       return;
-    }
-
-    if (data.otp || data.devOtp) {
-      setDemoOtp(data.otp || data.devOtp);
     }
 
     setOtpCode("");
@@ -377,22 +368,12 @@ const handleResendOtp = async () => {
         {/* STEP 2: Email OTP Verification */}
         {step === 'verify' && (
           <form className="space-y-4" onSubmit={handleVerifyOtp}>
-            {/* Demo Code Helper Pill */}
-            {demoOtp && (
-              <div 
-                onClick={() => setOtpCode(demoOtp)}
-                className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary flex items-center justify-between cursor-pointer hover:bg-primary/20 transition-all select-none"
-                title="Click to auto-fill verification code"
-              >
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Verification Code (Click to paste):
-                </span>
-                <span className="font-mono font-bold text-sm bg-primary/20 px-2.5 py-0.5 rounded-lg text-primary tracking-widest hover:scale-105 transition-transform">
-                  {demoOtp}
-                </span>
-              </div>
-            )}
+            <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-xs text-foreground flex items-center gap-2.5">
+              <Mail className="h-4 w-4 text-primary shrink-0" />
+              <span>
+                We sent a 6-digit verification code to <strong className="text-primary">{email}</strong>. Please check your inbox and spam folder.
+              </span>
+            </div>
 
             <div>
               <label className="text-xs font-semibold text-foreground">Enter 6-Digit Code</label>
