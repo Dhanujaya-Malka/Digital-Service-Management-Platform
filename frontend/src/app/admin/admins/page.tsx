@@ -259,7 +259,7 @@ export default function AdminAuthorizedEmailsPage() {
 
                     <div className="flex items-center gap-2">
                       {/* Do not allow deleting superadmin */}
-                      {email !== 'dhanujayamalka@gmail.com' && email !== 'admin@v2nexus.lk' ? (
+                      {email !== 'v2nexus.team@gmail.com' && email !== 'admin@v2nexus.lk' ? (
                         <Button
                           variant="ghost"
                           size="sm"

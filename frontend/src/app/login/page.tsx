@@ -99,8 +99,8 @@ function LoginContent() {
   const handleDemoLogin = () => {
     login({
       id: 'cust-demo',
-      name: 'Dhanujaya Malka',
-      email: 'dhanujayamalka@gmail.com',
+      name: 'V2Nexus Demo Customer',
+      email: 'customer@v2nexus.lk',
       role: 'user',
     });
     router.push(redirectTarget);

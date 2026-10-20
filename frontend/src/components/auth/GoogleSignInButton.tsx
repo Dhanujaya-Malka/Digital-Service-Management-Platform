@@ -31,8 +31,8 @@ export function GoogleSignInButton({
 
   const [isLoading, setIsLoading] = useState(false);
   const [showDevModal, setShowDevModal] = useState(false);
-  const [customEmail, setCustomEmail] = useState(target === 'admin' ? 'dhanujayamalka@gmail.com' : 'dhanujayamalka@gmail.com');
-  const [customName, setCustomName] = useState('Dhanujaya Malka');
+  const [customEmail, setCustomEmail] = useState(target === 'admin' ? 'v2nexus.team@gmail.com' : 'user@gmail.com');
+  const [customName, setCustomName] = useState(target === 'admin' ? 'V2Nexus Team Admin' : 'V2Nexus Customer');
   const [modalError, setModalError] = useState<string | null>(null);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -244,29 +244,29 @@ export function GoogleSignInButton({
                 Select Google Account:
               </label>
 
-              {/* Dhanujaya Malka Option */}
+              {/* V2Nexus Team Admin Preset Option */}
               <div
                 onClick={() => {
-                  setCustomEmail('dhanujayamalka@gmail.com');
-                  setCustomName('Dhanujaya Malka');
-                  handleGoogleAuth(undefined, { email: 'dhanujayamalka@gmail.com', name: 'Dhanujaya Malka' });
+                  setCustomEmail('v2nexus.team@gmail.com');
+                  setCustomName('V2Nexus Team Admin');
+                  handleGoogleAuth(undefined, { email: 'v2nexus.team@gmail.com', name: 'V2Nexus Team Admin' });
                 }}
                 className="p-3 rounded-xl border border-border/80 hover:border-primary/50 bg-muted/20 hover:bg-muted/40 cursor-pointer transition-all flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">
                   <div className="h-9 w-9 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center text-sm">
-                    D
+                    V
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                      Dhanujaya Malka
+                      V2Nexus Team Admin
                     </p>
-                    <p className="text-xs text-muted-foreground">dhanujayamalka@gmail.com</p>
+                    <p className="text-xs text-muted-foreground">v2nexus.team@gmail.com</p>
                   </div>
                 </div>
                 {target === 'admin' && (
                   <span className="text-[10px] font-bold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full">
-                    Authorized Admin
+                    Authorized SuperAdmin
                   </span>
                 )}
               </div>

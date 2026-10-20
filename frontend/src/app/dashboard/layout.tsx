@@ -44,8 +44,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // 2. Otherwise initialize default customer session so dashboard is immediately visible and testable
       login({
         id: 'cust-demo',
-        name: 'Dhanujaya Malka',
-        email: 'dhanujayamalka@gmail.com',
+        name: 'V2Nexus Demo Customer',
+        email: 'customer@v2nexus.lk',
         role: 'user',
       });
     }
