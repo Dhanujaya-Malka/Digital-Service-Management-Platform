@@ -7,6 +7,7 @@ import { Shield, Sparkles, Mail, CheckCircle2, ArrowRight, ArrowLeft, RefreshCw,
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/AppContext';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -265,7 +266,25 @@ const handleResendOtp = async () => {
 
         {/* STEP 1: Registration Form */}
         {step === 'form' && (
-          <form className="space-y-4" onSubmit={handleFormSubmit}>
+          <div className="space-y-4">
+            <GoogleSignInButton
+              target="user"
+              text="Sign up with Google"
+              isSignUp={true}
+              redirectTarget={redirectTarget || '/dashboard'}
+              onError={(msg) => setError(msg)}
+            />
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2.5 text-muted-foreground font-medium">Or register with email</span>
+              </div>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleFormSubmit}>
             <div>
               <label className="text-xs font-semibold text-foreground">Full Name</label>
               <div className="relative mt-1">
@@ -363,7 +382,8 @@ const handleResendOtp = async () => {
               By registering, you agree to our Terms of Service and Privacy Policy.
             </p>
           </form>
-        )}
+        </div>
+      )}
 
         {/* STEP 2: Email OTP Verification */}
         {step === 'verify' && (

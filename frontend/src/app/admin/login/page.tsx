@@ -7,6 +7,7 @@ import { ShieldAlert, ArrowRight, Zap, ArrowLeft, Lock, Eye, EyeOff } from 'luci
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/AppContext';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -71,6 +72,24 @@ export default function AdminLoginPage() {
             <span>{error}</span>
           </div>
         )}
+
+        {/* Google Admin Sign In */}
+        <div className="space-y-4">
+          <GoogleSignInButton
+            target="admin"
+            text="Sign in with Google as Admin"
+            onError={(msg) => setError(msg)}
+          />
+
+          <div className="relative my-3">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-destructive/20" />
+            </div>
+            <div className="relative flex justify-center text-[11px] uppercase">
+              <span className="bg-card px-2.5 text-muted-foreground font-medium">Or use master credentials</span>
+            </div>
+          </div>
+        </div>
 
         <form className="space-y-4" onSubmit={handleFormSubmit}>
           <div className="space-y-3">

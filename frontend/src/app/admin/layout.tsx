@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
-import { ShieldAlert, LayoutDashboard, Package, LogOut, ArrowLeft, Wifi, Gift, Menu, X } from 'lucide-react';
+import { ShieldAlert, LayoutDashboard, Package, LogOut, ArrowLeft, Wifi, Gift, Menu, X, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -64,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       icon: LayoutDashboard, 
       count: pendingOrdersCount 
     },
+    { name: 'Admin Google Access', path: '/admin/admins', icon: UserCheck },
     { name: 'Dashboard Overview', path: '/admin', icon: ShieldAlert },
   ];
 
