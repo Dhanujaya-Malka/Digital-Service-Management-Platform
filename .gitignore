@@ -31,3 +31,6 @@ yarn-error.log*
 # OS metadata
 .DS_Store
 Thumbs.db
+
+*.tar.gz
+desktop.ini
