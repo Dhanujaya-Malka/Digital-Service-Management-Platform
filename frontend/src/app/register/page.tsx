@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/AppContext';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
 
 function RegisterContent() {
   const router = useRouter();

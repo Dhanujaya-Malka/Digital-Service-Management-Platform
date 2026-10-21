@@ -113,7 +113,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [lastQuotaResetDate, setLastQuotaResetDate] = useState<string | null>(null);
 
   useEffect(() => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
 
     // 1. Initial quick load from cache or defaults to prevent layout shift
     const packageVersion = localStorage.getItem('vpn_packages_ver');
@@ -340,7 +340,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Live 3X-UI VPS Traffic Polling (Every 5 seconds for Real-Time Updates)
   useEffect(() => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
 
     const formatBytes = (bytes: number): string => {
       if (!bytes || bytes <= 0) return '0.00 MB';
@@ -439,7 +439,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [orders, subscription]);
 
   const refreshPackages = async () => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     try {
       const res = await fetch(`${API_BASE}/api/packages`);
       if (res.ok) {
@@ -457,7 +457,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshNetworkPackages = async () => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     try {
       const res = await fetch(`${API_BASE}/api/network-packages`);
       if (res.ok) {
@@ -474,7 +474,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addPackage = async (pkg: Package) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     // Optimistic UI update
     const updated = [...packages, pkg];
     setPackages(updated);
@@ -501,7 +501,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updatePackage = async (updatedPkg: Package) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     // Optimistic UI update
     const updated = packages.map((p) => (p.id === updatedPkg.id ? updatedPkg : p));
     setPackages(updated);
@@ -528,7 +528,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deletePackage = async (id: string) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     // Optimistic UI update
     const updated = packages.filter((p) => p.id !== id);
     setPackages(updated);
@@ -576,7 +576,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addNetworkPackage = async (pkg: NetworkPackage) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     const updated = [...networkPackages, pkg];
     setNetworkPackages(updated);
     localStorage.setItem('vpn_net_packages', JSON.stringify(updated));
@@ -593,7 +593,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateNetworkPackage = async (updatedPkg: NetworkPackage) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     const updated = networkPackages.map((p) => p.id === updatedPkg.id ? updatedPkg : p);
     setNetworkPackages(updated);
     localStorage.setItem('vpn_net_packages', JSON.stringify(updated));
@@ -610,7 +610,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteNetworkPackage = async (id: string) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     const updated = networkPackages.filter((p) => p.id !== id);
     setNetworkPackages(updated);
     localStorage.setItem('vpn_net_packages', JSON.stringify(updated));
@@ -723,7 +723,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updatedVpnDetails = undefined;
 
       // Revoke client immediately from live 3X-UI VPS panel
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
       const sanitizedEmail = (targetOrder.customerEmail || 'user').replace(/[^a-zA-Z0-9]/g, '').slice(0, 15);
       const clientEmail = `${targetOrder.id}-${sanitizedEmail}`;
       const clientUuid = targetOrder.vpnDetails?.configuration?.split('@')?.[0]?.replace('vless://', '');
@@ -854,7 +854,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetMonthlyQuota = async () => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     const now = new Date();
     const nowIso = now.toISOString();
     const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

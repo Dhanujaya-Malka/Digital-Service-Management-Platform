@@ -298,7 +298,7 @@ function CheckoutContent() {
       let serverLocation = `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`;
 
       // Call live backend to provision client on 3X-UI VPS
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
       try {
         const provisionRes = await fetch(`${API_BASE}/api/vpn/provision`, {
           method: 'POST',

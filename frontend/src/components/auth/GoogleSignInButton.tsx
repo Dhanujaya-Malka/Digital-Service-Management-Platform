@@ -50,7 +50,7 @@ export function GoogleSignInButton({
   const handleGoogleAuth = async (credential: string) => {
     setIsLoading(true);
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
 
     try {
       const res = await fetch(`${API_URL}/api/auth/google`, {

@@ -48,7 +48,7 @@ function LoginContent() {
 
     try {
       const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
 
       const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: "POST",
