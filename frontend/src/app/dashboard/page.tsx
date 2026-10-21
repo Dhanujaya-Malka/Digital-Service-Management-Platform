@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
+import { ensureStandardVlessUrl, buildVlessUrl } from '@/data/network-configs';
 import { 
   ShieldCheck, 
   Copy, 
@@ -126,10 +127,8 @@ export default function DashboardOverview() {
         const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
         const targetSni = (order.sni || 'aka.ms').trim();
         let vlessUrl = order.vpnDetails?.configuration || 
-          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}&alpn=h2,http/1.1#Cyberx-${cleanNet}-${cleanPkg}`;
-        if (vlessUrl && !vlessUrl.includes('alpn=')) {
-          vlessUrl = vlessUrl.replace('#', '&alpn=h2,http/1.1#');
-        }
+          buildVlessUrl(subId, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
+        vlessUrl = ensureStandardVlessUrl(vlessUrl, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
 
         list.push({
           id: order.id,
@@ -170,10 +169,8 @@ export default function DashboardOverview() {
       const rem = Math.max(0, parseFloat((limit - used).toFixed(2)));
       const pct = Math.min(100, Math.round((used / limit) * 100));
 
-      let vlessUrl = vpnConfig?.configuration || `vless://${subscription.id}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=virtual-internet-access.duckdns.org&alpn=h2,http/1.1#Cyberx-v2nexus-primary`;
-      if (vlessUrl && !vlessUrl.includes('alpn=')) {
-        vlessUrl = vlessUrl.replace('#', '&alpn=h2,http/1.1#');
-      }
+      let vlessUrl = vpnConfig?.configuration || buildVlessUrl(subscription.id, 'virtual-internet-access.duckdns.org', 'Cyberx-v2nexus-primary');
+      vlessUrl = ensureStandardVlessUrl(vlessUrl, 'virtual-internet-access.duckdns.org', 'Cyberx-v2nexus-primary');
 
       list.push({
         id: subscription.id,

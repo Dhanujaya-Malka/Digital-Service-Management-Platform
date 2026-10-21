@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { Package, NetworkConfig, NetworkPackage, Order, PromoCode } from '@/types';
-import { getNetworkConfig, getNetworkPackage } from '@/data/network-configs';
+import { getNetworkConfig, getNetworkPackage, buildVlessUrl, ensureStandardVlessUrl } from '@/data/network-configs';
 import { validatePromoCode } from '@/data/promo-codes';
 import { adminBankDetails } from '@/data/bank-config';
 import { getIspLogo } from '@/components/marketing/IspLogos';
@@ -294,7 +294,7 @@ function CheckoutContent() {
       const cleanNet = (activeNetwork?.name || activeNetworkPkg?.ispName || 'SLT').replace(/[^a-zA-Z0-9]/g, '');
       const cleanPkg = (activePlan.name || 'Pro').replace(/[^a-zA-Z0-9]/g, '-');
       const clientUuid = `${randomDigits}e7a-3f4b-48c2-a912-${Date.now().toString(16).padStart(12, '0')}`;
-      let vlessUrl = `vless://${clientUuid}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}&alpn=h2,http/1.1#Cyberx-${cleanNet}-${cleanPkg}`;
+      let vlessUrl = buildVlessUrl(clientUuid, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
       let serverLocation = `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`;
 
       // Call live backend to provision client on 3X-UI VPS
@@ -318,10 +318,7 @@ function CheckoutContent() {
         if (provisionRes.ok) {
           const resData = await provisionRes.json();
           if (resData.vlessUrl) {
-            vlessUrl = resData.vlessUrl;
-            if (!vlessUrl.includes('alpn=')) {
-              vlessUrl = vlessUrl.replace('#', '&alpn=h2,http/1.1#');
-            }
+            vlessUrl = ensureStandardVlessUrl(resData.vlessUrl, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
           }
           if (resData.serverLocation) {
             serverLocation = resData.serverLocation;

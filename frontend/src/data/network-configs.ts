@@ -416,3 +416,57 @@ export function getNetworkPackagesByIsp(isp: string): NetworkPackage[] {
   if (!isp || isp === 'all') return defaultNetworkPackages;
   return defaultNetworkPackages.filter((p) => p.isp.toLowerCase() === isp.toLowerCase());
 }
+
+/**
+ * Constructs standard VLESS URI matching 3X-UI gRPC Inbound #1 specifications:
+ * vless://UUID@HOST:443/?encryption=none&flow=none&security=tls&fp=chrome&sni=SNI&alpn=h2%2c+http%2f1.1&type=grpc&mode=gun&serviceName=grpc-service#REMARK
+ */
+export function buildVlessUrl(
+  uuid: string,
+  sni: string = 'aka.ms',
+  remark?: string,
+  host: string = 'virtual-internet-access.duckdns.org',
+  port: number = 443
+): string {
+  const cleanUuid = (uuid || '').replace(/^vless:\/\//, '').split('@')[0].trim();
+  const cleanSni = (sni && sni.trim()) ? sni.trim() : 'aka.ms';
+  const cleanRemark = remark ? `#${remark.replace(/^#/, '')}` : '';
+  return `vless://${cleanUuid}@${host}:${port}/?encryption=none&flow=none&security=tls&fp=chrome&sni=${cleanSni}&alpn=h2%2c+http%2f1.1&type=grpc&mode=gun&serviceName=grpc-service${cleanRemark}`;
+}
+
+/**
+ * Ensures any VLESS URI is normalized into the exact standard requested with alpn=h2%2c+http%2f1.1
+ */
+export function ensureStandardVlessUrl(
+  url: string,
+  fallbackSni: string = 'aka.ms',
+  fallbackRemark?: string
+): string {
+  if (!url || typeof url !== 'string' || !url.startsWith('vless://')) {
+    return url;
+  }
+
+  try {
+    const withoutProto = url.replace('vless://', '');
+    const [authPart, restPart] = withoutProto.split('@');
+    if (!authPart || !restPart) return url;
+
+    const [hostPortPart] = restPart.split(/[/?#]/);
+    const host = hostPortPart || 'virtual-internet-access.duckdns.org:443';
+
+    let sni = fallbackSni;
+    const sniMatch = url.match(/[?&]sni=([^&#]+)/);
+    if (sniMatch && sniMatch[1]) {
+      sni = decodeURIComponent(sniMatch[1]);
+    }
+
+    const hashMatch = url.split('#');
+    const remark = hashMatch.length > 1 ? hashMatch[1] : (fallbackRemark || '');
+    const cleanRemark = remark ? `#${remark.replace(/^#/, '')}` : '';
+
+    return `vless://${authPart}@${host}/?encryption=none&flow=none&security=tls&fp=chrome&sni=${sni}&alpn=h2%2c+http%2f1.1&type=grpc&mode=gun&serviceName=grpc-service${cleanRemark}`;
+  } catch {
+    return url;
+  }
+}
+

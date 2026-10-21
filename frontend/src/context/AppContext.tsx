@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Package, User, Subscription, Usage, VPNConfig, NetworkConfig, NetworkPackage, PromoCode, Order, OrderStatus } from '@/types';
 import { defaultPackages } from '@/data/mock-packages';
-import { supportedNetworks, defaultNetworkPackages } from '@/data/network-configs';
+import { supportedNetworks, defaultNetworkPackages, ensureStandardVlessUrl, buildVlessUrl } from '@/data/network-configs';
 import { defaultPromoCodes } from '@/data/promo-codes';
 
 interface AppContextType {
@@ -207,8 +207,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem('vpn_config');
           setVpnConfig(null);
         } else {
-          if (parsedVpn?.configuration && !parsedVpn.configuration.includes('alpn=')) {
-            parsedVpn.configuration = parsedVpn.configuration.replace('#', '&alpn=h2,http/1.1#');
+          if (parsedVpn?.configuration) {
+            parsedVpn.configuration = ensureStandardVlessUrl(parsedVpn.configuration);
             localStorage.setItem('vpn_config', JSON.stringify(parsedVpn));
           }
           setVpnConfig(parsedVpn);
@@ -266,12 +266,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const parsedOrders = JSON.parse(storedOrders);
         if (Array.isArray(parsedOrders)) {
           const upgradedOrders = parsedOrders.map((o: Order) => {
-            if (o.vpnDetails?.configuration && !o.vpnDetails.configuration.includes('alpn=')) {
+            if (o.vpnDetails?.configuration) {
               return {
                 ...o,
                 vpnDetails: {
                   ...o.vpnDetails,
-                  configuration: o.vpnDetails.configuration.replace('#', '&alpn=h2,http/1.1#'),
+                  configuration: ensureStandardVlessUrl(o.vpnDetails.configuration, o.sni || 'aka.ms'),
                 },
               };
             }
@@ -766,9 +766,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const targetSni = (targetOrder.sni || 'aka.ms').trim();
         
         updatedVpnDetails = {
-          server: `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`,
+          server: `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni} | ALPN: h2,http/1.1)`,
           status: 'connected',
-          configuration: `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}&alpn=h2,http/1.1#Cyberx-${cleanNet}-${cleanPkg}`,
+          configuration: buildVlessUrl(subId, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`),
           qrCode: 'active-v2ray-qr',
         };
       }

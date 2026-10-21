@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
+import { ensureStandardVlessUrl, buildVlessUrl } from '@/data/network-configs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,10 +58,8 @@ export default function VPNConfigPage() {
         const cleanPkg = pkgName.replace(/[^a-zA-Z0-9]/g, '-');
         const targetSni = (order.sni || 'aka.ms').trim();
         let configuration = order.vpnDetails?.configuration ||
-          `vless://${subId}@virtual-internet-access.duckdns.org:443?security=tls&encryption=none&type=grpc&serviceName=grpc-service&sni=${targetSni}&alpn=h2,http/1.1#Cyberx-${cleanNet}-${cleanPkg}`;
-        if (configuration && !configuration.includes('alpn=')) {
-          configuration = configuration.replace('#', '&alpn=h2,http/1.1#');
-        }
+          buildVlessUrl(subId, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
+        configuration = ensureStandardVlessUrl(configuration, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
         const server = order.vpnDetails?.server || `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni} | ALPN: h2,http/1.1)`;
 
         list.push({
@@ -74,10 +73,7 @@ export default function VPNConfigPage() {
         });
       });
     } else if (vpnConfig && vpnConfig.configuration) {
-      let configuration = vpnConfig.configuration;
-      if (configuration && !configuration.includes('alpn=')) {
-        configuration = configuration.replace('#', '&alpn=h2,http/1.1#');
-      }
+      const configuration = ensureStandardVlessUrl(vpnConfig.configuration, 'aka.ms', 'Cyberx-V2Ray-HighSpeed');
       list.push({
         id: subscription?.id || 'default-vpn',
         name: 'V2Ray High-Speed VPN',
