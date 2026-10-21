@@ -313,6 +313,7 @@ function CheckoutContent() {
             totalGB: activePlan.trafficLimit || 0,
             expiryDays: 30,
             uuid: clientUuid,
+            deviceLimit: activePlan.deviceLimit || '1 Device',
           }),
         });
         if (provisionRes.ok) {
