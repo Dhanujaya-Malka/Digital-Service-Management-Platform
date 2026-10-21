@@ -97,16 +97,7 @@ function LoginContent() {
     }
   };
 
-  const handleDemoLogin = () => {
-    login({
-      id: 'cust-demo',
-      name: 'V2Nexus Demo Customer',
-      email: 'customer@v2nexus.lk',
-      role: 'user',
-    });
-    router.push(redirectTarget);
-    router.refresh();
-  };
+
 
 
   return (
@@ -229,17 +220,7 @@ function LoginContent() {
             {isLoading ? 'Signing in...' : 'Sign in'}
           </Button>
 
-          {/* Quick Demo Login Option */}
-          <div className="pt-2 border-t border-border/40 space-y-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleDemoLogin}
-              className="w-full h-11 text-xs font-bold border-primary/40 text-primary hover:bg-primary/10 gap-2"
-            >
-              <span>⚡ One-Click Demo Login (Customer Dashboard)</span>
-            </Button>
-          </div>
+
         </form>
 
       </div>

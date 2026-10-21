@@ -31,26 +31,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!isInitialized) return;
     if (!user) {
-      // 1. If an order exists, automatically restore that customer session
-      if (orders && orders.length > 0) {
-        const primaryOrder = orders[0];
-        login({
-          id: `cust-${primaryOrder.id.toLowerCase()}`,
-          name: primaryOrder.customerName || 'Customer',
-          email: primaryOrder.customerEmail,
-          role: 'user',
-        });
-        return;
-      }
-      // 2. Otherwise initialize default customer session so dashboard is immediately visible and testable
-      login({
-        id: 'cust-demo',
-        name: 'V2Nexus Demo Customer',
-        email: 'customer@v2nexus.lk',
-        role: 'user',
-      });
+      router.push(`/login?redirect=${encodeURIComponent(pathname || '/dashboard')}`);
     }
-  }, [user, isInitialized, orders, login]);
+  }, [user, isInitialized, pathname, router]);
 
   // Close mobile menu on route change
   useEffect(() => {
