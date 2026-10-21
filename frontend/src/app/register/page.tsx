@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Shield, Sparkles, Mail, CheckCircle2, ArrowRight, ArrowLeft, RefreshCw, Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -219,9 +220,15 @@ const handleResendOtp = async () => {
 
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center">
-          <Link href="/" className="flex items-center gap-2 font-bold text-2xl tracking-tight mb-2">
-            <Shield className="h-8 w-8 text-primary" />
-            <span>V2Nexus</span>
+          <Link href="/" className="mb-2">
+            <Image 
+              src="/logo.png" 
+              alt="V2Nexus Logo" 
+              width={180} 
+              height={44} 
+              className="h-10 w-auto object-contain" 
+              priority 
+            />
           </Link>
 
           {step === 'verify' && (

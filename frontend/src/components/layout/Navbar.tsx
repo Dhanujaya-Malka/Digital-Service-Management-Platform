@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Shield, Menu, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,8 +32,14 @@ export default function Navbar() {
       <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
-            <Shield className="h-6 w-6 text-primary" />
-            <span>V2Nexus</span>
+            <Image 
+              src="/logo.png" 
+              alt="V2Nexus Logo" 
+              width={160} 
+              height={38} 
+              className="h-8 md:h-9 w-auto object-contain" 
+              priority 
+            />
           </Link>
         </div>
 

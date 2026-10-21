@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { 
   Shield, 
@@ -89,9 +90,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Desktop Sidebar */}
       <aside className="w-64 border-r border-border/40 bg-card hidden md:flex flex-col">
         <div className="h-16 flex items-center px-6 border-b border-border/40">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
-            <Shield className="h-6 w-6 text-primary" />
-            <span>V2Nexus</span>
+          <Link href="/" className="flex items-center gap-2">
+            <Image 
+              src="/logo.png" 
+              alt="V2Nexus Logo" 
+              width={150} 
+              height={36} 
+              className="h-8 w-auto object-contain" 
+              priority 
+            />
           </Link>
         </div>
 
@@ -153,9 +160,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Mobile Header */}
         <header className="md:hidden h-16 border-b border-border/40 flex items-center justify-between px-4 bg-card z-30 shrink-0">
-          <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-            <Shield className="h-5 w-5 text-primary" />
-            <span>V2Nexus</span>
+          <Link href="/" className="flex items-center gap-2">
+            <Image 
+              src="/logo.png" 
+              alt="V2Nexus Logo" 
+              width={130} 
+              height={32} 
+              className="h-7 w-auto object-contain" 
+              priority 
+            />
           </Link>
           
           <Button

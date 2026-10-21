@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Shield, KeyRound, Mail, CheckCircle2, ArrowLeft,
   ArrowRight, Lock, RefreshCw, MessageSquare, Eye, EyeOff
@@ -165,9 +166,15 @@ export default function ForgotPasswordPage() {
         <div className="absolute top-0 left-0 w-full h-1.5 bg-primary" />
 
         <div className="flex flex-col items-center text-center">
-          <Link href="/" className="flex items-center gap-2 font-bold text-2xl tracking-tight mb-2">
-            <Shield className="h-8 w-8 text-primary" />
-            <span>V2Nexus</span>
+          <Link href="/" className="mb-2">
+            <Image 
+              src="/logo.png" 
+              alt="V2Nexus Logo" 
+              width={180} 
+              height={44} 
+              className="h-10 w-auto object-contain" 
+              priority 
+            />
           </Link>
 
           <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mt-2 mb-2 shadow-inner">

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Shield, MessageCircle, Globe, Mail } from 'lucide-react';
 
 export default function Footer() {
@@ -8,8 +9,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           <div className="col-span-1 md:col-span-1 flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
-              <Shield className="h-6 w-6 text-primary" />
-              <span>V2Nexus</span>
+              <Image 
+                src="/logo.png" 
+                alt="V2Nexus Logo" 
+                width={150} 
+                height={36} 
+                className="h-8 w-auto object-contain" 
+              />
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Private, fast, and secure internet access without compromise. Experience the web as it should be.

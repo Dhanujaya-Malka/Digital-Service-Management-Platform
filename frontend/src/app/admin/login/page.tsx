@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShieldAlert, ArrowRight, Zap, ArrowLeft, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,8 +57,20 @@ export default function AdminLoginPage() {
         <div className="absolute top-0 left-0 w-full h-1.5 bg-destructive"></div>
         
         <div className="flex flex-col items-center text-center">
-          <div className="h-14 w-14 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive mb-3 shadow-inner">
-            <ShieldAlert className="h-8 w-8" />
+          <Link href="/" className="mb-4">
+            <Image 
+              src="/logo.png" 
+              alt="V2Nexus Logo" 
+              width={180} 
+              height={44} 
+              className="h-10 w-auto object-contain" 
+              priority 
+            />
+          </Link>
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/25">
+              Secure Administration
+            </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
             Admin Portal

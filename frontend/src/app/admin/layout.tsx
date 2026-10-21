@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { ShieldAlert, LayoutDashboard, Package, LogOut, ArrowLeft, Wifi, Gift, Menu, X, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -73,10 +74,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Sidebar (Desktop) */}
       <aside className="w-64 border-r border-destructive/20 bg-card hidden md:flex flex-col relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-destructive"></div>
-        <div className="h-16 flex items-center px-6 border-b border-border/40">
-          <Link href="/admin/packages" className="flex items-center gap-2 font-bold text-xl tracking-tight text-destructive">
-            <ShieldAlert className="h-6 w-6" />
-            <span>Admin Portal</span>
+        <div className="h-16 flex items-center px-6 border-b border-border/40 justify-between">
+          <Link href="/admin/packages" className="flex items-center gap-2">
+            <Image 
+              src="/logo.png" 
+              alt="V2Nexus Logo" 
+              width={130} 
+              height={32} 
+              className="h-7 w-auto object-contain" 
+              priority 
+            />
+            <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-destructive/15 text-destructive border border-destructive/25">
+              Admin
+            </span>
           </Link>
         </div>
 
@@ -139,9 +149,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Mobile Header */}
         <header className="md:hidden h-16 border-b border-border/40 flex items-center justify-between px-4 bg-card border-t-2 border-t-destructive z-30 shrink-0">
-          <Link href="/admin/packages" className="flex items-center gap-2 font-bold text-lg text-destructive">
-            <ShieldAlert className="h-5 w-5" />
-            <span>Admin Portal</span>
+          <Link href="/admin/packages" className="flex items-center gap-2">
+            <Image 
+              src="/logo.png" 
+              alt="V2Nexus Logo" 
+              width={120} 
+              height={30} 
+              className="h-6 w-auto object-contain" 
+              priority 
+            />
+            <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-destructive/15 text-destructive border border-destructive/25">
+              Admin
+            </span>
           </Link>
           
           <div className="flex items-center gap-2">
