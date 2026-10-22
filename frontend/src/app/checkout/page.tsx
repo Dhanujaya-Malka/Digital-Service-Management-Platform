@@ -148,15 +148,33 @@ function CheckoutContent() {
   const originalPrice = activePlan?.price || 0;
   const finalPrice = Math.max(0, originalPrice - discountAmount);
 
-  // Handle Promo Code Apply
-  const handleApplyPromo = () => {
+  // Handle Promo Code Apply (Real-Time Cloud Validation from PostgreSQL)
+  const handleApplyPromo = async () => {
     setPromoMessage(null);
-    if (!promoInput.trim()) {
+    const cleanInput = promoInput.trim().toUpperCase();
+    if (!cleanInput) {
       setPromoMessage({ type: 'error', text: 'Please enter a promo code or gift card.' });
       return;
     }
 
-    const result = validatePromoCode(promoInput, originalPrice, promoCodes);
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
+    let currentList = promoCodes;
+
+    // Fetch the freshest promo codes directly from AWS RDS PostgreSQL database
+    try {
+      const res = await fetch(`${API_BASE}/api/promos`);
+      if (res.ok) {
+        const cloudPromos = await res.json();
+        if (Array.isArray(cloudPromos) && cloudPromos.length > 0) {
+          currentList = cloudPromos;
+          localStorage.setItem('vpn_promos', JSON.stringify(cloudPromos));
+        }
+      }
+    } catch (e) {
+      console.warn('Real-time promo check network fallback:', e);
+    }
+
+    const result = validatePromoCode(cleanInput, originalPrice, currentList);
     if (result.valid && result.promo) {
       setAppliedPromo(result.promo);
       setDiscountAmount(result.discountAmount);

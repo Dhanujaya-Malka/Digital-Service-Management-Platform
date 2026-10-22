@@ -6,6 +6,19 @@ import { PromoCode } from '@/types';
  */
 export const defaultPromoCodes: PromoCode[] = [
   {
+    id: 'promo_himara123',
+    code: 'HIMARA123',
+    discountType: 'gift_100',
+    value: 100,
+    description: '100% Free Trial Gift Voucher for Himara',
+    durationDays: 30,
+    createdAt: new Date().toISOString(),
+    maxUses: 20,
+    usedCount: 0,
+    isUsed: false,
+    isActive: true,
+  },
+  {
     id: 'promo_gift-87a96',
     code: 'GIFT-87A96',
     discountType: 'gift_100',
