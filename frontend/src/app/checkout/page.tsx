@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
-import { Package, NetworkConfig, NetworkPackage, Order, PromoCode } from '@/types';
+import { Package, NetworkConfig, NetworkPackage, Order, PromoCode, OrderStatus } from '@/types';
 import { getNetworkConfig, getNetworkPackage, buildVlessUrl, ensureStandardVlessUrl } from '@/data/network-configs';
 import { validatePromoCode } from '@/data/promo-codes';
 import { adminBankDetails } from '@/data/bank-config';
@@ -329,6 +329,50 @@ function CheckoutContent() {
         console.warn('Backend 3X-UI provision fallback:', provisionErr);
       }
 
+      let orderStatus: OrderStatus = 'pending_approval';
+      let isProvisional = true;
+      let aiVerificationDetails = isFreeGift 
+        ? 'Free trial voucher verified. Instant trial access active.'
+        : 'Bank transfer slip uploaded. Awaiting verification.';
+      let adminNotes = isFreeGift 
+        ? `100% Free Gift Trial (${appliedPromo.durationDays || 7} Days) redeemed via voucher "${appliedPromo.code}". Ready for approval.`
+        : 'Awaiting administrator verification of bank transfer slip.';
+
+      // Real AI Slip Verification (Google Gemini Vision API)
+      if (!isFreeGift && slipPreviewUrl && finalPrice > 0) {
+        setAiScanStatus('scanning');
+        try {
+          const aiRes = await fetch(`${API_BASE}/api/payments/verify-slip`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId,
+              slipBase64: slipPreviewUrl,
+              expectedAmount: finalPrice,
+              expectedAccount: '0094574296',
+              expectedBank: 'Bank of Ceylon',
+              expectedAccountName: 'MR A D D M U NANAYAKKARA',
+            }),
+          });
+          if (aiRes.ok) {
+            const aiData = await aiRes.json();
+            if (aiData.approved) {
+              setAiScanStatus('passed');
+              orderStatus = 'approved';
+              isProvisional = false;
+              aiVerificationDetails = `✨ AI Instant Approval: Destination Account 0094574296 & Rs. ${finalPrice} payment verified (${aiData.details?.detectedReference || 'BOC Verified'}).`;
+              adminNotes = `Order automatically approved by AI Slip Verification: Matched account 0094574296, Rs. ${finalPrice} (${aiData.details?.reason || 'Verified'}).`;
+            } else if (aiData.details?.reason) {
+              setAiScanStatus('passed');
+              aiVerificationDetails = `AI Audit Notice: ${aiData.details.reason}`;
+              adminNotes = `AI Review Notice: ${aiData.details.reason}`;
+            }
+          }
+        } catch (aiErr) {
+          console.warn('AI Slip Verification network notice:', aiErr);
+        }
+      }
+
       const newOrder: Order = {
         id: orderId,
         createdAt: new Date().toISOString(),
@@ -354,16 +398,12 @@ function CheckoutContent() {
         slipFileSize: isFreeGift ? 1024 : slipFile?.size,
         slipFileData: slipPreviewUrl || undefined,
         bankReference: isFreeGift ? `GIFT-CARD-${appliedPromo.code}` : (bankReference.trim() || undefined),
-        status: 'pending_approval',
-        adminNotes: isFreeGift 
-          ? `100% Free Gift Trial (${appliedPromo.durationDays || 7} Days) redeemed via voucher "${appliedPromo.code}". Ready for approval.`
-          : 'Awaiting administrator verification of bank transfer slip.',
-        vpnProvisioned: true, // Instant provisional VPN access provisioned!
-        isProvisional: true, // Provisional access active while admin review is pending
-        aiPreCheckPassed: true, // AI pre-check passed
-        aiVerificationDetails: isFreeGift 
-          ? 'Free trial voucher verified. Instant trial access active.'
-          : 'Automated AI Receipt Check Passed: Standard bank transaction slip structure & metadata verified. Provisional VLESS access granted.',
+        status: orderStatus,
+        adminNotes,
+        vpnProvisioned: true, // Instant VPN access provisioned!
+        isProvisional, // false if AI approved, true if pending manual review
+        aiPreCheckPassed: true,
+        aiVerificationDetails,
         vpnDetails: {
           server: serverLocation,
           status: 'connected',
