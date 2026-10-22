@@ -24,7 +24,9 @@ import {
   ExternalLink,
   Gift,
   Zap,
-  AlertTriangle
+  AlertTriangle,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 
 function ConfirmationContent() {
@@ -68,10 +70,15 @@ function ConfirmationContent() {
               <Gift className="h-3.5 w-3.5 mr-1.5" />
               <span>100% FREE TRIAL GIFT ACTIVATED</span>
             </Badge>
-          ) : currentOrder?.isProvisional ? (
+          ) : currentOrder?.status === 'approved' ? (
             <Badge className="bg-emerald-500/15 hover:bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-xs font-semibold px-3 py-1 mb-3 flex items-center gap-1.5 mx-auto w-fit">
-              <Zap className="h-3.5 w-3.5 text-primary" />
-              <span>AI PRE-APPROVED • INSTANT TEMPORARY ACCESS UNLOCKED</span>
+              <Check className="h-3.5 w-3.5 text-emerald-400" />
+              <span>✨ AI VERIFIED & PAYMENT APPROVED</span>
+            </Badge>
+          ) : currentOrder?.status === 'rejected' ? (
+            <Badge className="bg-destructive/15 hover:bg-destructive/15 text-destructive border-destructive/30 text-xs font-semibold px-3 py-1 mb-3 flex items-center gap-1.5 mx-auto w-fit">
+              <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+              <span>❌ PAYMENT SLIP DECLINED</span>
             </Badge>
           ) : (
             <Badge className="bg-amber-500/15 hover:bg-amber-500/15 text-amber-400 border-amber-500/30 text-xs font-semibold px-3 py-1 mb-3">
@@ -83,16 +90,20 @@ function ConfirmationContent() {
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
             {isFreeTrial
               ? 'Free Trial Gift Activated!'
-              : currentOrder?.isProvisional
-              ? 'Instant VPN Access Unlocked!'
-              : 'Order Submitted Successfully!'}
+              : currentOrder?.status === 'approved'
+              ? 'Payment Approved • VPN Activated!'
+              : currentOrder?.status === 'rejected'
+              ? 'Payment Slip Declined'
+              : 'Payment Slip Submitted!'}
           </h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-lg mx-auto leading-relaxed">
             {isFreeTrial
-              ? 'Your 100% Free Trial Gift Voucher has been redeemed and queued for instant VPN provisioning.'
-              : currentOrder?.isProvisional
-              ? 'Your bank transfer slip passed our smart AI receipt check! Your VPN credentials are generated and active right now. Admin will perform final deposit verification shortly.'
-              : 'Thank you for your order. Your bank transfer slip has been uploaded and queued for verification.'}
+              ? 'Your 100% Free Trial Gift Voucher has been redeemed and your VPN account is active.'
+              : currentOrder?.status === 'approved'
+              ? 'Your bank transfer slip was verified successfully by our automated system! Your VPN credentials are ready.'
+              : currentOrder?.status === 'rejected'
+              ? (currentOrder.adminNotes || 'The uploaded file is blank or not a valid bank payment receipt. No VPN credentials were issued. Please try again with a valid receipt.')
+              : 'Thank you for your order. We received your transfer slip for BOC account 0094574296. Our verification team will review your deposit shortly, and your VPN credentials will unlock in your customer dashboard.'}
           </p>
         </div>
 
@@ -242,22 +253,28 @@ function ConfirmationContent() {
 
                   <div className="flex items-start gap-3 text-xs">
                     <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5 ${
-                      currentOrder?.isProvisional || isFreeTrial
+                      currentOrder?.status === 'approved' || isFreeTrial
                         ? 'bg-emerald-500/15 text-emerald-400'
-                        : 'bg-amber-500/15 text-amber-400 animate-pulse'
+                        : currentOrder?.status === 'rejected'
+                        ? 'bg-destructive/15 text-destructive'
+                        : 'bg-amber-500/15 text-amber-400'
                     }`}>
-                      {currentOrder?.isProvisional || isFreeTrial ? '✓' : '2'}
+                      {currentOrder?.status === 'approved' || isFreeTrial ? '✓' : currentOrder?.status === 'rejected' ? '✕' : '2'}
                     </div>
                     <div>
                       <p className="font-semibold text-foreground">
-                        {currentOrder?.isProvisional || isFreeTrial 
-                          ? '2. Temporary VPN Access Activated (Instant)' 
-                          : '2. VPN Account Provisioning'}
+                        {currentOrder?.status === 'approved' || isFreeTrial 
+                          ? '2. VPN Account Provisioned (Active)' 
+                          : currentOrder?.status === 'rejected'
+                          ? '2. VPN Access Blocked (Declined)'
+                          : '2. Awaiting Admin Approval'}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        {currentOrder?.isProvisional || isFreeTrial
-                          ? 'Your Singapore VLESS Reality config and QR code are ready for immediate use in your dashboard!'
-                          : 'VPN credentials will be provisioned once your deposit is confirmed.'}
+                        {currentOrder?.status === 'approved' || isFreeTrial
+                          ? 'Your Singapore VLESS Reality config and QR code are ready for use in your dashboard!'
+                          : currentOrder?.status === 'rejected'
+                          ? 'No VPN credentials will be issued for this order due to invalid receipt.'
+                          : 'VPN credentials will be provisioned once your BOC deposit is confirmed.'}
                       </p>
                     </div>
                   </div>
@@ -287,18 +304,27 @@ function ConfirmationContent() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href="/dashboard/vpn" className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto gap-2 text-xs h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
-              <QrCode className="h-4 w-4" />
-              <span>Connect Now (View VPN QR)</span>
-            </Button>
-          </Link>
-
-          <Link href="/dashboard" className="w-full sm:w-auto">
-            <Button variant="outline" className="w-full sm:w-auto gap-2 text-xs h-11 px-6 rounded-xl border-border/80">
-              <span>Go to Dashboard</span>
-            </Button>
-          </Link>
+          {currentOrder?.status === 'rejected' ? (
+            <Link href="/pricing" className="w-full sm:w-auto">
+              <Button variant="destructive" className="w-full sm:w-auto gap-2 text-xs h-11 px-6 rounded-xl shadow-md shadow-destructive/20 font-semibold">
+                <span>Try Again / Choose Package</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          ) : currentOrder?.status === 'approved' || isFreeTrial ? (
+            <Link href="/dashboard/vpn" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto gap-2 text-xs h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
+                <QrCode className="h-4 w-4" />
+                <span>Connect Now (View VPN QR)</span>
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/dashboard" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto gap-2 text-xs h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
+                <span>Go to Dashboard (Pending Verification)</span>
+              </Button>
+            </Link>
+          )}
 
           <Link href="/dashboard/orders" className="w-full sm:w-auto">
             <Button variant="ghost" className="w-full sm:w-auto gap-2 text-xs h-11 px-5 rounded-xl text-muted-foreground hover:text-foreground">

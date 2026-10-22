@@ -788,6 +788,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Update VPN Config
       setVpnConfig(updatedVpnDetails);
       localStorage.setItem('vpn_config', JSON.stringify(updatedVpnDetails));
+
+      // If VPN was not provisioned earlier (e.g. was pending review), provision it now on 3X-UI!
+      if (!targetOrder.vpnProvisioned) {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
+        fetch(`${API_BASE}/api/vpn/provision`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: targetOrder.id,
+            email: targetOrder.customerEmail,
+            customerName: targetOrder.customerName,
+            packageName: targetOrder.packageName,
+            networkName: targetOrder.networkName,
+            sni: targetOrder.sni,
+            totalGB: targetOrder.dataQuota ? parseInt(targetOrder.dataQuota, 10) : 0,
+            expiryDays: 30,
+            uuid: subId,
+            deviceLimit: targetOrder.deviceLimit || '1 Device',
+          }),
+        }).catch((e) => console.warn('Admin approve 3X-UI provision error:', e));
+      }
     }
 
     const updatedOrders = orders.map((o) => {

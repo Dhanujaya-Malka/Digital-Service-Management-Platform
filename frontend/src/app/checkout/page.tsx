@@ -84,7 +84,7 @@ function CheckoutContent() {
 
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [aiScanStatus, setAiScanStatus] = useState<'idle' | 'scanning' | 'passed'>('idle');
+  const [aiScanStatus, setAiScanStatus] = useState<'idle' | 'scanning' | 'passed' | 'failed'>('idle');
   const [formError, setFormError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -294,52 +294,65 @@ function CheckoutContent() {
       const cleanNet = (activeNetwork?.name || activeNetworkPkg?.ispName || 'SLT').replace(/[^a-zA-Z0-9]/g, '');
       const cleanPkg = (activePlan.name || 'Pro').replace(/[^a-zA-Z0-9]/g, '-');
       const clientUuid = `${randomDigits}e7a-3f4b-48c2-a912-${Date.now().toString(16).padStart(12, '0')}`;
-      let vlessUrl = buildVlessUrl(clientUuid, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
-      let serverLocation = `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`;
 
-      // Call live backend to provision client on 3X-UI VPS
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
-      try {
-        const provisionRes = await fetch(`${API_BASE}/api/vpn/provision`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orderId,
-            email: customerEmail.trim(),
-            customerName: customerName || 'Customer',
-            packageName: activePlan.name,
-            networkName: cleanNet,
-            sni: targetSni,
-            totalGB: activePlan.trafficLimit || 0,
-            expiryDays: 30,
-            uuid: clientUuid,
-            deviceLimit: activePlan.deviceLimit || '1 Device',
-          }),
-        });
-        if (provisionRes.ok) {
-          const resData = await provisionRes.json();
-          if (resData.vlessUrl) {
-            vlessUrl = ensureStandardVlessUrl(resData.vlessUrl, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
-          }
-          if (resData.serverLocation) {
-            serverLocation = resData.serverLocation;
-          }
-        }
-      } catch (provisionErr) {
-        console.warn('Backend 3X-UI provision fallback:', provisionErr);
-      }
 
       let orderStatus: OrderStatus = 'pending_approval';
-      let isProvisional = true;
+      let vpnProvisioned = false; // Strictly FALSE by default! No temporary links given without approval!
+      let isProvisional = false;
+      let vpnDetails: any = undefined;
       let aiVerificationDetails = isFreeGift 
         ? 'Free trial voucher verified. Instant trial access active.'
-        : 'Bank transfer slip uploaded. Awaiting verification.';
+        : 'Bank transfer slip uploaded. Awaiting administrator verification.';
       let adminNotes = isFreeGift 
-        ? `100% Free Gift Trial (${appliedPromo.durationDays || 7} Days) redeemed via voucher "${appliedPromo.code}". Ready for approval.`
+        ? `100% Free Gift Trial (${appliedPromo.durationDays || 7} Days) redeemed via voucher "${appliedPromo.code}". Approved.`
         : 'Awaiting administrator verification of bank transfer slip.';
 
-      // Real AI Slip Verification (Google Gemini Vision API)
-      if (!isFreeGift && slipPreviewUrl && finalPrice > 0) {
+      // Helper to provision VPN client on 3X-UI VPS
+      const provisionVpnAccess = async () => {
+        let vlessUrl = buildVlessUrl(clientUuid, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
+        let serverLocation = `virtual-internet-access.duckdns.org:443 (Cyberx - VLESS gRPC TLS | SNI: ${targetSni})`;
+        try {
+          const provRes = await fetch(`${API_BASE}/api/vpn/provision`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId,
+              email: customerEmail.trim(),
+              customerName: customerName || 'Customer',
+              packageName: activePlan.name,
+              networkName: cleanNet,
+              sni: targetSni,
+              totalGB: activePlan.trafficLimit || 0,
+              expiryDays: 30,
+              uuid: clientUuid,
+              deviceLimit: activePlan.deviceLimit || '1 Device',
+            }),
+          });
+          if (provRes.ok) {
+            const data = await provRes.json();
+            if (data.vlessUrl) vlessUrl = ensureStandardVlessUrl(data.vlessUrl, targetSni, `Cyberx-${cleanNet}-${cleanPkg}`);
+            if (data.serverLocation) serverLocation = data.serverLocation;
+          }
+        } catch (e) {
+          console.warn('Backend 3X-UI provision fallback:', e);
+        }
+        return {
+          server: serverLocation,
+          status: 'connected',
+          configuration: vlessUrl,
+          qrCode: 'active-v2ray-qr',
+        };
+      };
+
+      // Case 1: 100% Free Gift Voucher Trial
+      if (isFreeGift) {
+        orderStatus = 'approved';
+        vpnProvisioned = true;
+        vpnDetails = await provisionVpnAccess();
+      }
+      // Case 2: Bank Transfer with uploaded slip
+      else if (slipPreviewUrl && finalPrice > 0) {
         setAiScanStatus('scanning');
         try {
           const aiRes = await fetch(`${API_BASE}/api/payments/verify-slip`, {
@@ -354,22 +367,48 @@ function CheckoutContent() {
               expectedAccountName: 'MR A D D M U NANAYAKKARA',
             }),
           });
+
           if (aiRes.ok) {
             const aiData = await aiRes.json();
-            if (aiData.approved) {
+
+            // Check if blank, fake, or non-bank-slip -> Automatic Decline!
+            if (aiData.details?.isFakeOrBlank || aiData.details?.isBankSlip === false) {
+              setAiScanStatus('failed');
+              orderStatus = 'rejected';
+              vpnProvisioned = false;
+              vpnDetails = undefined; // NO VPN LINK GIVEN!
+              aiVerificationDetails = `❌ AI Audit Declined: ${aiData.details?.reason || 'Uploaded file is not a valid bank payment receipt.'}`;
+              adminNotes = `Order automatically declined by AI Slip Verification: Fake, blank, or invalid image detected (${aiData.details?.reason || 'Invalid slip'}).`;
+            }
+            // Check if AI strictly Approved (Matched account 0094574296 AND Amount)
+            else if (aiData.approved) {
               setAiScanStatus('passed');
               orderStatus = 'approved';
-              isProvisional = false;
-              aiVerificationDetails = `✨ AI Instant Approval: Destination Account 0094574296 & Rs. ${finalPrice} payment verified (${aiData.details?.detectedReference || 'BOC Verified'}).`;
+              vpnProvisioned = true;
+              vpnDetails = await provisionVpnAccess(); // Provision ONLY when verified!
+              aiVerificationDetails = `✨ AI Instant Approval: Destination account 0094574296 & Rs. ${finalPrice} payment verified (${aiData.details?.detectedReference || 'BOC Verified'}).`;
               adminNotes = `Order automatically approved by AI Slip Verification: Matched account 0094574296, Rs. ${finalPrice} (${aiData.details?.reason || 'Verified'}).`;
-            } else if (aiData.details?.reason) {
-              setAiScanStatus('passed');
-              aiVerificationDetails = `AI Audit Notice: ${aiData.details.reason}`;
-              adminNotes = `AI Review Notice: ${aiData.details.reason}`;
             }
+            // Real slip but amount/account mismatch or AI key pending -> Strict manual review (NO VPN link yet!)
+            else {
+              setAiScanStatus('passed');
+              orderStatus = 'pending_approval';
+              vpnProvisioned = false; // Strictly NO VPN link until Admin approves!
+              vpnDetails = undefined;
+              aiVerificationDetails = aiData.details?.reason || 'Slip uploaded. Awaiting administrator review of bank deposit.';
+              adminNotes = `Awaiting admin review: ${aiData.details?.reason || 'Pending verification'}`;
+            }
+          } else {
+            // Server error / network fallback -> Pending manual review, NO VPN link
+            orderStatus = 'pending_approval';
+            vpnProvisioned = false;
+            vpnDetails = undefined;
           }
         } catch (aiErr) {
-          console.warn('AI Slip Verification network notice:', aiErr);
+          console.warn('AI slip verify network notice:', aiErr);
+          orderStatus = 'pending_approval';
+          vpnProvisioned = false;
+          vpnDetails = undefined;
         }
       }
 
@@ -400,16 +439,11 @@ function CheckoutContent() {
         bankReference: isFreeGift ? `GIFT-CARD-${appliedPromo.code}` : (bankReference.trim() || undefined),
         status: orderStatus,
         adminNotes,
-        vpnProvisioned: true, // Instant VPN access provisioned!
-        isProvisional, // false if AI approved, true if pending manual review
-        aiPreCheckPassed: true,
+        vpnProvisioned, // Only true if approved! False if pending or rejected!
+        isProvisional: false, // Never provisional!
+        aiPreCheckPassed: orderStatus === 'approved',
         aiVerificationDetails,
-        vpnDetails: {
-          server: serverLocation,
-          status: 'connected',
-          configuration: vlessUrl,
-          qrCode: 'active-v2ray-qr',
-        },
+        vpnDetails, // undefined if pending or rejected!
       };
 
       // Save order in context and localStorage
