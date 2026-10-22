@@ -336,6 +336,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsInitialized(true);
     refreshPackages();
     refreshNetworkPackages();
+    fetchPromos();
+    fetchCustomerOrders();
   }, []);
 
   // Live 3X-UI VPS Traffic Polling (Every 5 seconds for Real-Time Updates)
@@ -470,6 +472,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.warn('Failed to refresh network packages from backend:', err);
+    }
+  };
+
+  const fetchPromos = async () => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
+    try {
+      const res = await fetch(`${API_BASE}/api/promos`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setPromoCodes(data);
+          localStorage.setItem('vpn_promos', JSON.stringify(data));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch promos from cloud:', e);
+    }
+  };
+
+  const fetchCustomerOrders = async () => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
+    try {
+      const res = await fetch(`${API_BASE}/api/customer-orders`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setOrders(data);
+          localStorage.setItem('vpn_orders', JSON.stringify(data));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch customer orders from cloud:', e);
     }
   };
 
@@ -635,24 +669,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Promo code actions
   const addPromoCode = (promo: PromoCode) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     const updated = [promo, ...promoCodes];
     setPromoCodes(updated);
     localStorage.setItem('vpn_promos', JSON.stringify(updated));
+
+    // Save directly to PostgreSQL cloud database
+    fetch(`${API_BASE}/api/promos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(promo),
+    }).catch((err) => console.warn('Failed to save promo to PostgreSQL:', err));
   };
 
   const updatePromoCode = (updatedPromo: PromoCode) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     const updated = promoCodes.map((p) => (p.id === updatedPromo.id ? updatedPromo : p));
     setPromoCodes(updated);
     localStorage.setItem('vpn_promos', JSON.stringify(updated));
+
+    fetch(`${API_BASE}/api/promos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedPromo),
+    }).catch((err) => console.warn('Failed to update promo in PostgreSQL:', err));
   };
 
   const deletePromoCode = (id: string) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     const updated = promoCodes.filter((p) => p.id !== id);
     setPromoCodes(updated);
     localStorage.setItem('vpn_promos', JSON.stringify(updated));
+
+    fetch(`${API_BASE}/api/promos/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }).catch((err) => console.warn('Failed to delete promo from PostgreSQL:', err));
   };
 
   const markPromoCodeUsed = (code: string, orderId: string, customerEmail: string) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     const cleanCode = code.toUpperCase().trim();
     const updated = promoCodes.map((p) => {
       if (p.code.toUpperCase().trim() === cleanCode) {
@@ -672,13 +727,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
     setPromoCodes(updated);
     localStorage.setItem('vpn_promos', JSON.stringify(updated));
+
+    // Redeem in PostgreSQL cloud database
+    fetch(`${API_BASE}/api/promos/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: cleanCode, orderId, email: customerEmail }),
+    }).catch((err) => console.warn('Failed to redeem promo in PostgreSQL:', err));
   };
 
   // Order actions
   const createOrder = (order: Order) => {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
     const updated = [order, ...orders.filter((o) => o.id !== order.id)];
     setOrders(updated);
     localStorage.setItem('vpn_orders', JSON.stringify(updated));
+
+    // Save order directly to AWS RDS PostgreSQL cloud database!
+    fetch(`${API_BASE}/api/customer-orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    }).catch((err) => console.warn('Failed to save order to PostgreSQL:', err));
 
     // If order has provisional or approved VPN details, activate VPN and subscription in AppContext
     if (order.vpnProvisioned && order.vpnDetails) {
@@ -827,6 +897,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setOrders(updatedOrders);
     localStorage.setItem('vpn_orders', JSON.stringify(updatedOrders));
+
+    // Sync status change directly to AWS RDS PostgreSQL cloud database!
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
+    fetch(`${API_BASE}/api/customer-orders/${encodeURIComponent(orderId)}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: newStatus,
+        adminNotes,
+        vpnProvisioned,
+        vpnDetails: updatedVpnDetails,
+      }),
+    }).catch((err) => console.warn('Failed to update order status in PostgreSQL:', err));
   };
 
   const getOrderById = (orderId: string) => {

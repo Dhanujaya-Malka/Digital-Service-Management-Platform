@@ -4,7 +4,34 @@ import { PromoCode } from '@/types';
  * Initial Default Promo / Gift Trial Vouchers.
  * Dynamic codes generated from the Admin Portal are stored in localStorage and AppContext.
  */
-export const defaultPromoCodes: PromoCode[] = [];
+export const defaultPromoCodes: PromoCode[] = [
+  {
+    id: 'promo_gift-87a96',
+    code: 'GIFT-87A96',
+    discountType: 'gift_100',
+    value: 100,
+    description: '100% Free Trial Gift Card',
+    durationDays: 7,
+    createdAt: new Date().toISOString(),
+    maxUses: 20,
+    usedCount: 0,
+    isUsed: false,
+    isActive: true,
+  },
+  {
+    id: 'promo_trial7',
+    code: 'GIFT-TRIAL7',
+    discountType: 'gift_100',
+    value: 100,
+    description: '100% Free 7-Day Trial Gift Voucher',
+    durationDays: 7,
+    createdAt: new Date().toISOString(),
+    maxUses: 20,
+    usedCount: 0,
+    isUsed: false,
+    isActive: true,
+  },
+];
 
 // Backward-compatible alias
 export const availablePromoCodes = defaultPromoCodes;
