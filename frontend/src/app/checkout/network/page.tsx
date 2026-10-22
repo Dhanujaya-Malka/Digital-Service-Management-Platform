@@ -117,7 +117,7 @@ function NetworkSelectionContent() {
       alert('The selected bypass route is currently not available / offline. Please choose an active route to proceed.');
       return;
     }
-    if (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0) {
+    if (activePlan.badge === 'OUT OF STOCK' || (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0)) {
       alert('This package is currently out of stock. Please choose an active plan from Pricing.');
       router.push('/pricing');
       return;
@@ -137,7 +137,7 @@ function NetworkSelectionContent() {
     }
     handleSelectPackage(pkg);
     if (!activePlan) return;
-    if (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0) {
+    if (activePlan.badge === 'OUT OF STOCK' || (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0)) {
       alert('This package is currently out of stock. Please choose an active plan from Pricing.');
       router.push('/pricing');
       return;
@@ -502,12 +502,13 @@ function NetworkSelectionContent() {
               !chosenNetworkPkg || 
               !activePlan || 
               chosenNetworkPkg.status !== 'active' || 
+              activePlan.badge === 'OUT OF STOCK' ||
               (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0)
             }
             className="w-full sm:w-auto h-11 px-8 rounded-xl font-bold text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span>
-              {activePlan?.availableSlots !== undefined && activePlan.availableSlots <= 0
+              {(activePlan?.badge === 'OUT OF STOCK' || (activePlan?.availableSlots !== undefined && activePlan.availableSlots <= 0))
                 ? 'Plan Out of Stock'
                 : chosenNetworkPkg && chosenNetworkPkg.status !== 'active'
                 ? 'Route Not Available'

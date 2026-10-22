@@ -17,7 +17,7 @@ export default function PricingCard({ pkg }: PricingCardProps) {
   const { user, selectPlan, getEffectiveSlots } = useApp();
 
   const effectiveSlots = getEffectiveSlots ? getEffectiveSlots(pkg) : (pkg.availableSlots !== undefined ? pkg.availableSlots : 100);
-  const isOutOfStock = effectiveSlots <= 0;
+  const isOutOfStock = effectiveSlots <= 0 || pkg.badge === 'OUT OF STOCK' || (pkg.availableSlots !== undefined && pkg.availableSlots <= 0);
 
   const handleChoosePlan = () => {
     if (isOutOfStock) return;

@@ -256,7 +256,7 @@ function CheckoutContent() {
       return;
     }
 
-    if (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0) {
+    if (activePlan.badge === 'OUT OF STOCK' || (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0)) {
       setFormError('This package is currently out of stock (0 slots remaining). Please return to Pricing to choose an available plan.');
       return;
     }
@@ -1128,10 +1128,12 @@ function CheckoutContent() {
                       isSubmitting || 
                       !activePlan || 
                       !activeNetwork || 
+                      activePlan.badge === 'OUT OF STOCK' ||
                       (activePlan.availableSlots !== undefined && activePlan.availableSlots <= 0) ||
                       Boolean(activeNetworkPkg && activeNetworkPkg.status !== 'active')
                     }
                     className={`w-full h-11 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-2 mt-2 ${
+                      activePlan?.badge === 'OUT OF STOCK' ||
                       (activePlan?.availableSlots !== undefined && activePlan.availableSlots <= 0) ||
                       (activeNetworkPkg && activeNetworkPkg.status !== 'active')
                         ? 'bg-muted text-muted-foreground border border-border/70 cursor-not-allowed hover:bg-muted'
@@ -1148,7 +1150,7 @@ function CheckoutContent() {
                         <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                         <span>✓ AI Pre-Approved! Activating VPN...</span>
                       </>
-                    ) : activePlan?.availableSlots !== undefined && activePlan.availableSlots <= 0 ? (
+                    ) : (activePlan?.badge === 'OUT OF STOCK' || (activePlan?.availableSlots !== undefined && activePlan.availableSlots <= 0)) ? (
                       <>
                         <AlertCircle className="h-4 w-4 text-rose-400" />
                         <span>Selected Package is Out of Stock</span>

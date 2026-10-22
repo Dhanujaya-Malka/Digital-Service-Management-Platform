@@ -81,6 +81,22 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+export const normalizePackage = (pkg: Package): Package => {
+  const isOutOfStock =
+    pkg.badge === 'OUT OF STOCK' ||
+    (pkg.availableSlots !== undefined && Number(pkg.availableSlots) <= 0);
+
+  return {
+    ...pkg,
+    availableSlots: isOutOfStock ? 0 : (pkg.availableSlots !== undefined ? Number(pkg.availableSlots) : 100),
+    badge: isOutOfStock
+      ? 'OUT OF STOCK'
+      : pkg.popular
+      ? 'POPULAR'
+      : (pkg.badge && pkg.badge !== 'OUT OF STOCK' ? pkg.badge : 'ACTIVE'),
+  };
+};
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [packages, setPackages] = useState<Package[]>(defaultPackages);
   const [user, setUser] = useState<User | null>(null);
@@ -139,8 +155,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch(`${API_BASE}/api/packages`);
         if (res.ok) {
           const data = await res.json();
-          const dbPackages: Package[] = Array.isArray(data) ? data : (data.packages || []);
-          if (Array.isArray(dbPackages) && dbPackages.length > 0) {
+          const rawPackages: Package[] = Array.isArray(data) ? data : (data.packages || []);
+          if (Array.isArray(rawPackages) && rawPackages.length > 0) {
+            const dbPackages = rawPackages.map(normalizePackage);
             setPackages(dbPackages);
             localStorage.setItem('vpn_packages', JSON.stringify(dbPackages));
             localStorage.setItem('vpn_packages_ver', 'v5');
@@ -446,8 +463,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch(`${API_BASE}/api/packages`);
       if (res.ok) {
         const data = await res.json();
-        const dbPackages: Package[] = Array.isArray(data) ? data : (data.packages || []);
-        if (Array.isArray(dbPackages) && dbPackages.length > 0) {
+        const rawPackages: Package[] = Array.isArray(data) ? data : (data.packages || []);
+        if (Array.isArray(rawPackages) && rawPackages.length > 0) {
+          const dbPackages = rawPackages.map(normalizePackage);
           setPackages(dbPackages);
           localStorage.setItem('vpn_packages', JSON.stringify(dbPackages));
           localStorage.setItem('vpn_packages_ver', 'v5');
@@ -536,22 +554,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updatePackage = async (updatedPkg: Package) => {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
+    
+    // Normalize package state
+    const normalizedPkg = normalizePackage(updatedPkg);
+
     // Optimistic UI update
-    const updated = packages.map((p) => (p.id === updatedPkg.id ? updatedPkg : p));
+    const updated = packages.map((p) => (p.id === normalizedPkg.id ? normalizedPkg : p));
     setPackages(updated);
     localStorage.setItem('vpn_packages', JSON.stringify(updated));
 
     // Update in PostgreSQL database
     try {
-      const res = await fetch(`${API_BASE}/api/packages/${encodeURIComponent(updatedPkg.id)}`, {
+      const res = await fetch(`${API_BASE}/api/packages/${encodeURIComponent(normalizedPkg.id)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedPkg),
+        body: JSON.stringify(normalizedPkg),
       });
       if (res.ok) {
         const savedPkg = await res.json();
         if (savedPkg && savedPkg.id) {
-          setPackages((prev) => prev.map((p) => (p.id === updatedPkg.id ? savedPkg : p)));
+          const finalSaved = normalizePackage(savedPkg);
+          setPackages((prev) => prev.map((p) => (p.id === normalizedPkg.id ? finalSaved : p)));
         }
       } else {
         console.error('Failed to update package in database:', await res.text());
@@ -999,6 +1022,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getEffectiveSlots = (pkg: Package): number => {
+    // If marked OUT OF STOCK or availableSlots is 0 or package is deactivated
+    if (
+      pkg.badge === 'OUT OF STOCK' ||
+      pkg.availableSlots === 0 ||
+      (pkg.availableSlots !== undefined && Number(pkg.availableSlots) <= 0) ||
+      pkg.isActive === false
+    ) {
+      return 0;
+    }
+
     const stats = getServerBandwidthStats();
     // User rule: unlimited package assumes default 500GB
     const pkgQuota = (pkg.trafficLimit && pkg.trafficLimit > 0) ? pkg.trafficLimit : 500;

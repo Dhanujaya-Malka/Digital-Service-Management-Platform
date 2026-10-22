@@ -113,6 +113,14 @@ export default function AdminPackagesPage() {
 
   const handleSaveEdit = () => {
     if (isEditing && editForm.id) {
+      const isOutOfStock = editForm.badge === 'OUT OF STOCK' || Number(editForm.availableSlots) <= 0;
+      const finalSlots = isOutOfStock ? 0 : Math.max(1, Number(editForm.availableSlots) || 50);
+      const finalBadge = isOutOfStock
+        ? 'OUT OF STOCK'
+        : editForm.popular
+        ? 'POPULAR'
+        : 'ACTIVE';
+
       const updated: Package = {
         id: editForm.id,
         name: editForm.name || 'Custom Package',
@@ -123,37 +131,52 @@ export default function AdminPackagesPage() {
         deviceLimit: editForm.deviceLimit || '1 Device',
         features: editForm.features?.filter(f => f.trim() !== '') || [],
         popular: Boolean(editForm.popular),
-        availableSlots: Number(editForm.availableSlots) || 0,
+        availableSlots: finalSlots,
         category: editForm.category || 'basic',
         serverLocation: editForm.serverLocation || 'SG SERVER',
         p2pTorrent: (editForm.p2pTorrent as 'Allowed' | 'Restricted') || 'Restricted',
         speedLimit: editForm.speedLimit || 'No Speed Limit',
-        badge: editForm.popular ? 'POPULAR' : 'ACTIVE',
+        badge: finalBadge,
       };
       updatePackage(updated);
       setIsEditing(null);
+      setSaveSuccessMsg(
+        isOutOfStock
+          ? `"${updated.name}" updated and marked as OUT OF STOCK (Checkout blocked).`
+          : `"${updated.name}" updated successfully (Stock: ${finalSlots} slots).`
+      );
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
     }
   };
 
   const handleTogglePackageStock = async (pkg: Package) => {
-    const isCurrentlyInStock = (pkg.availableSlots ?? 0) > 0;
+    const isCurrentlyInStock = (pkg.availableSlots ?? 0) > 0 && pkg.badge !== 'OUT OF STOCK';
     const newSlots = isCurrentlyInStock ? 0 : 50;
+    const newBadge = isCurrentlyInStock ? 'OUT OF STOCK' : (pkg.popular ? 'POPULAR' : 'ACTIVE');
     const updated: Package = {
       ...pkg,
       availableSlots: newSlots,
-      badge: newSlots > 0 ? (pkg.popular ? 'POPULAR' : 'ACTIVE') : 'OUT OF STOCK',
+      badge: newBadge,
     };
     await updatePackage(updated);
     setSaveSuccessMsg(
-      newSlots === 0
-        ? `"${pkg.name}" marked as NOT AVAILABLE (Stock set to 0. Checkout blocked).`
-        : `"${pkg.name}" marked as AVAILABLE (Stock set to 50 slots).`
+      isCurrentlyInStock
+        ? `"${pkg.name}" marked as OUT OF STOCK (Stock set to 0. Checkout blocked).`
+        : `"${pkg.name}" marked as IN STOCK (Stock set to 50 slots).`
     );
     setTimeout(() => setSaveSuccessMsg(null), 4000);
   };
 
   const handleSaveAdd = () => {
     if (addForm.name && addForm.price !== undefined) {
+      const isOutOfStock = addForm.badge === 'OUT OF STOCK' || Number(addForm.availableSlots) <= 0;
+      const finalSlots = isOutOfStock ? 0 : (Number(addForm.availableSlots) || 100);
+      const finalBadge = isOutOfStock
+        ? 'OUT OF STOCK'
+        : addForm.popular
+        ? 'POPULAR'
+        : 'ACTIVE';
+
       const newPkg: Package = {
         id: `pkg-${Date.now()}`,
         name: addForm.name,
@@ -164,12 +187,12 @@ export default function AdminPackagesPage() {
         deviceLimit: addForm.deviceLimit || '1 Device',
         features: addForm.features?.filter(f => f.trim() !== '') || [],
         popular: Boolean(addForm.popular),
-        availableSlots: Number(addForm.availableSlots) || 100,
+        availableSlots: finalSlots,
         category: addForm.category || 'basic',
         serverLocation: addForm.serverLocation || 'SG SERVER',
         p2pTorrent: (addForm.p2pTorrent as 'Allowed' | 'Restricted') || 'Restricted',
         speedLimit: addForm.speedLimit || 'No Speed Limit',
-        badge: addForm.popular ? 'POPULAR' : 'ACTIVE',
+        badge: finalBadge,
       };
       addPackage(newPkg);
       setIsAdding(false);
@@ -187,7 +210,10 @@ export default function AdminPackagesPage() {
         features: ['High-Speed V2Ray', 'SLT, Dialog, Mobitel, Airtel & Hutch', 'Zero Speed Throttling'],
         popular: false,
         availableSlots: 100,
+        badge: 'ACTIVE',
       });
+      setSaveSuccessMsg(`New plan "${newPkg.name}" created successfully!`);
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
     }
   };
 
@@ -563,12 +589,83 @@ export default function AdminPackagesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Available Slots (Stock)</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Available Slots (Stock)</Label>
+                  <span className="text-[10px] text-muted-foreground font-medium">0 = Out of Stock</span>
+                </div>
                 <Input 
                   type="number" 
+                  min="0"
                   value={addForm.availableSlots} 
-                  onChange={(e) => setAddForm({...addForm, availableSlots: parseInt(e.target.value)})} 
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    setAddForm({
+                      ...addForm, 
+                      availableSlots: val,
+                      badge: val <= 0 ? 'OUT OF STOCK' : (addForm.badge === 'OUT OF STOCK' ? (addForm.popular ? 'POPULAR' : 'ACTIVE') : addForm.badge),
+                    });
+                  }} 
                 />
+              </div>
+
+              {/* Add Stock Availability Selector */}
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-4 rounded-xl border border-border/70 bg-muted/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-xs font-bold text-foreground">Initial Stock & Availability Status</Label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Choose whether this plan launches in stock or out of stock.
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border self-start sm:self-auto ${
+                    addForm.badge === 'OUT OF STOCK' || (addForm.availableSlots !== undefined && Number(addForm.availableSlots) <= 0)
+                      ? 'bg-destructive/15 text-destructive border-destructive/30'
+                      : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                  }`}>
+                    {addForm.badge === 'OUT OF STOCK' || (addForm.availableSlots !== undefined && Number(addForm.availableSlots) <= 0)
+                      ? '● OUT OF STOCK'
+                      : '● IN STOCK'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prevSlots = addForm.availableSlots && Number(addForm.availableSlots) > 0 ? Number(addForm.availableSlots) : 100;
+                      setAddForm({
+                        ...addForm,
+                        badge: addForm.popular ? 'POPULAR' : 'ACTIVE',
+                        availableSlots: prevSlots,
+                      });
+                    }}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      addForm.badge !== 'OUT OF STOCK' && (addForm.availableSlots === undefined || Number(addForm.availableSlots) > 0)
+                        ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
+                        : 'bg-card border-border text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>In Stock (Available for Purchase)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddForm({
+                        ...addForm,
+                        badge: 'OUT OF STOCK',
+                        availableSlots: 0,
+                      });
+                    }}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      addForm.badge === 'OUT OF STOCK' || (addForm.availableSlots !== undefined && Number(addForm.availableSlots) <= 0)
+                        ? 'bg-destructive/15 border-destructive text-destructive shadow-sm ring-1 ring-destructive/30'
+                        : 'bg-card border-border text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>Out of Stock (Sold Out / Block Checkout)</span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -760,12 +857,83 @@ export default function AdminPackagesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Available Slots (Stock)</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Available Slots (Stock)</Label>
+                  <span className="text-[10px] text-muted-foreground font-medium">0 = Out of Stock</span>
+                </div>
                 <Input 
                   type="number" 
+                  min="0"
                   value={editForm.availableSlots} 
-                  onChange={(e) => setEditForm({...editForm, availableSlots: parseInt(e.target.value)})} 
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    setEditForm({
+                      ...editForm, 
+                      availableSlots: val,
+                      badge: val <= 0 ? 'OUT OF STOCK' : (editForm.badge === 'OUT OF STOCK' ? (editForm.popular ? 'POPULAR' : 'ACTIVE') : editForm.badge),
+                    });
+                  }} 
                 />
+              </div>
+
+              {/* Stock Availability Selector */}
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3 p-4 rounded-xl border border-border/70 bg-muted/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-xs font-bold text-foreground">Stock & Availability Status</Label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Choose whether this plan is live for purchase or flagged as Out of Stock (blocks checkout).
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border self-start sm:self-auto ${
+                    editForm.badge === 'OUT OF STOCK' || (editForm.availableSlots !== undefined && Number(editForm.availableSlots) <= 0)
+                      ? 'bg-destructive/15 text-destructive border-destructive/30'
+                      : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                  }`}>
+                    {editForm.badge === 'OUT OF STOCK' || (editForm.availableSlots !== undefined && Number(editForm.availableSlots) <= 0)
+                      ? '● OUT OF STOCK (CHECKOUT BLOCKED)'
+                      : '● IN STOCK (AVAILABLE)'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prevSlots = editForm.availableSlots && Number(editForm.availableSlots) > 0 ? Number(editForm.availableSlots) : 50;
+                      setEditForm({
+                        ...editForm,
+                        badge: editForm.popular ? 'POPULAR' : 'ACTIVE',
+                        availableSlots: prevSlots,
+                      });
+                    }}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      editForm.badge !== 'OUT OF STOCK' && (editForm.availableSlots === undefined || Number(editForm.availableSlots) > 0)
+                        ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
+                        : 'bg-card border-border text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>In Stock (Available for Purchase)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditForm({
+                        ...editForm,
+                        badge: 'OUT OF STOCK',
+                        availableSlots: 0,
+                      });
+                    }}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      editForm.badge === 'OUT OF STOCK' || (editForm.availableSlots !== undefined && Number(editForm.availableSlots) <= 0)
+                        ? 'bg-destructive/15 border-destructive text-destructive shadow-sm ring-1 ring-destructive/30'
+                        : 'bg-card border-border text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>Out of Stock (Sold Out / Block Checkout)</span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -863,13 +1031,22 @@ export default function AdminPackagesPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredPackages.map((pkg) => (
           <Card key={pkg.id} className={`relative flex flex-col justify-between transition-all hover:shadow-lg ${
-            pkg.popular ? 'border-primary/60 ring-1 ring-primary/30' : 'border-border/60'
+            pkg.badge === 'OUT OF STOCK' || (pkg.availableSlots ?? 0) <= 0
+              ? 'border-destructive/40 bg-destructive/[0.02]'
+              : pkg.popular
+              ? 'border-primary/60 ring-1 ring-primary/30'
+              : 'border-border/60'
           }`}>
-            {pkg.popular && (
+            {pkg.badge === 'OUT OF STOCK' || (pkg.availableSlots ?? 0) <= 0 ? (
+              <div className="absolute top-0 right-0 bg-destructive text-destructive-foreground text-[10px] px-2.5 py-0.5 rounded-bl-lg font-bold uppercase tracking-wider flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                OUT OF STOCK
+              </div>
+            ) : pkg.popular ? (
               <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] px-2.5 py-0.5 rounded-bl-lg font-bold uppercase tracking-wider">
                 POPULAR
               </div>
-            )}
+            ) : null}
 
             <CardHeader className="pb-3 pt-5">
               <div className="flex justify-between items-start">
@@ -931,15 +1108,23 @@ export default function AdminPackagesPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Stock / Slots:</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-foreground">{pkg.availableSlots}</span>
-                    {getEffectiveSlots && (
-                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
-                        getEffectiveSlots(pkg) <= 0
-                          ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 font-bold'
-                          : 'bg-primary/10 text-primary border-primary/20'
-                      }`}>
-                        Pool: {getEffectiveSlots(pkg)}
-                      </span>
+                    {pkg.badge === 'OUT OF STOCK' || (pkg.availableSlots ?? 0) <= 0 ? (
+                      <Badge variant="destructive" className="text-[10px] font-bold px-2 py-0.5">
+                        0 (OUT OF STOCK)
+                      </Badge>
+                    ) : (
+                      <>
+                        <span className="font-semibold text-foreground">{pkg.availableSlots}</span>
+                        {getEffectiveSlots && (
+                          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                            getEffectiveSlots(pkg) <= 0
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 font-bold'
+                              : 'bg-primary/10 text-primary border-primary/20'
+                          }`}>
+                            Pool: {getEffectiveSlots(pkg)}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -971,29 +1156,34 @@ export default function AdminPackagesPage() {
                 <span>Edit Details</span>
               </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleTogglePackageStock(pkg)}
-                className={`w-full text-xs font-semibold gap-1.5 ${
-                  (pkg.availableSlots ?? 0) > 0
-                    ? 'border-destructive/30 text-destructive hover:bg-destructive/10'
-                    : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
-                }`}
-                title={(pkg.availableSlots ?? 0) > 0 ? 'Click to make Out of Stock (Block checkout)' : 'Click to restore stock'}
-              >
-                {(pkg.availableSlots ?? 0) > 0 ? (
-                  <>
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    <span>Set Out of Stock</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Set In Stock</span>
-                  </>
-                )}
-              </Button>
+              {(() => {
+                const inStock = (pkg.availableSlots ?? 0) > 0 && pkg.badge !== 'OUT OF STOCK';
+                return (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTogglePackageStock(pkg)}
+                    className={`w-full text-xs font-semibold gap-1.5 ${
+                      inStock
+                        ? 'border-destructive/30 text-destructive hover:bg-destructive/10'
+                        : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
+                    }`}
+                    title={inStock ? 'Click to make Out of Stock (Block checkout)' : 'Click to restore stock'}
+                  >
+                    {inStock ? (
+                      <>
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        <span>Set Out of Stock</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>Set In Stock</span>
+                      </>
+                    )}
+                  </Button>
+                );
+              })()}
             </div>
           </Card>
         ))}
