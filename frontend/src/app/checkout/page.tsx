@@ -205,16 +205,12 @@ function CheckoutContent() {
 
     setSlipFile(file);
 
-    // Generate preview URL if it's an image
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setSlipPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setSlipPreviewUrl(null);
-    }
+    // Read file as Data URL (Supports both image and PDF)
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSlipPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRemoveFile = () => {
@@ -775,23 +771,26 @@ function CheckoutContent() {
                           ) : (
                             <div className="p-3 rounded-xl bg-background border border-border/60 flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3 overflow-hidden">
-                                {slipPreviewUrl ? (
+                                {slipPreviewUrl && !slipFile?.type?.includes('pdf') && !slipFile?.name?.toLowerCase().endsWith('.pdf') ? (
                                   <img 
                                     src={slipPreviewUrl} 
                                     alt="Slip Preview" 
                                     className="h-12 w-12 rounded-lg object-cover border border-border/60 shrink-0" 
                                   />
                                 ) : (
-                                  <div className="h-12 w-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                                    <FileText className="h-6 w-6" />
+                                  <div className="h-12 w-12 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 flex flex-col items-center justify-center shrink-0">
+                                    <FileText className="h-5 w-5" />
+                                    <span className="text-[8px] font-extrabold uppercase tracking-wider">PDF</span>
                                   </div>
                                 )}
                                 <div className="overflow-hidden">
                                   <p className="text-xs font-medium text-foreground truncate">
                                     {slipFile.name}
                                   </p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    {(slipFile.size / 1024).toFixed(1)} KB • Ready for verification
+                                  <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                                    <span>{(slipFile.size / 1024).toFixed(1)} KB</span>
+                                    <span>•</span>
+                                    <span className="text-emerald-500 font-medium">Ready for AI review</span>
                                   </p>
                                 </div>
                               </div>

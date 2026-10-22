@@ -418,11 +418,34 @@ export default function AdminOrdersPage() {
                   </p>
                 </div>
               ) : selectedOrderForSlip?.slipFileData ? (
-                <img
-                  src={selectedOrderForSlip.slipFileData}
-                  alt="Customer Payment Receipt"
-                  className="max-h-[340px] w-auto object-contain rounded-lg shadow-sm"
-                />
+                selectedOrderForSlip.slipFileData.startsWith('data:application/pdf') || 
+                selectedOrderForSlip.slipFileName?.toLowerCase().endsWith('.pdf') ? (
+                  <div className="w-full space-y-3">
+                    <iframe
+                      src={selectedOrderForSlip.slipFileData}
+                      title="Customer PDF Bank Slip"
+                      className="w-full h-[400px] rounded-lg border border-border/60 bg-white"
+                    />
+                    <div className="flex justify-end">
+                      <a
+                        href={selectedOrderForSlip.slipFileData}
+                        download={selectedOrderForSlip.slipFileName || 'payment_slip.pdf'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        Download / Open Full PDF
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    src={selectedOrderForSlip.slipFileData}
+                    alt="Customer Payment Receipt"
+                    className="max-h-[340px] w-auto object-contain rounded-lg shadow-sm"
+                  />
+                )
               ) : (
                 <div className="p-8 text-center text-muted-foreground space-y-2">
                   <FileText className="h-12 w-12 text-primary mx-auto opacity-70" />
