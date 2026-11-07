@@ -21,15 +21,25 @@ export default function Footer() {
               Private, fast, and secure internet access without compromise. Experience the web as it should be.
             </p>
             <div className="flex items-center gap-4 mt-2">
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <a 
+                href="https://wa.me/94761597020?text=Hello%20V2Nexus%20Support" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                title="WhatsApp Support (+94 76 159 7020)"
+                className="text-muted-foreground hover:text-emerald-400 transition-colors"
+              >
                 <MessageCircle className="h-5 w-5" />
-              </Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              </a>
+              <Link href="/" title="V2Nexus Home" className="text-muted-foreground hover:text-primary transition-colors">
                 <Globe className="h-5 w-5" />
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <a 
+                href="mailto:v2nexus.team@gmail.com" 
+                title="Email Support (v2nexus.team@gmail.com)"
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
                 <Mail className="h-5 w-5" />
-              </Link>
+              </a>
             </div>
           </div>
           
