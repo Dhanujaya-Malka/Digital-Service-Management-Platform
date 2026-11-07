@@ -1,4 +1,4 @@
-import { CheckCircle2, Download, ShieldCheck, Zap } from 'lucide-react';
+import { CheckCircle2, Download, ShieldCheck, Zap, Video, Tag } from 'lucide-react';
 
 export default function HowItWorksPage() {
   return (
@@ -60,22 +60,63 @@ export default function HowItWorksPage() {
           </div>
         </div>
 
-        {/* Clean Looping Showcase Video (Below Steps) */}
-        <div className="max-w-5xl mx-auto my-20">
-          <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-border/80 bg-black shadow-2xl">
-            <video
-              src="/videos/loop.mp4"
-              autoPlay
-              loop
-              muted
-              playsInline
-              controls
-              className="w-full h-auto max-h-[650px] object-contain mx-auto"
-            />
+        {/* Video Tutorials Section */}
+        <div className="max-w-5xl mx-auto my-24 space-y-20">
+          
+          {/* Guide Video 1: VPN Setup & Connection Guide (Existing Showcase Video) */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                <Video className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-primary uppercase tracking-wider">Video Tutorial</span>
+                <h2 className="text-2xl md:text-3xl font-bold">VPN Connection & Setup Guide</h2>
+              </div>
+            </div>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Follow this step-by-step video demonstration to see how quickly you can configure and connect your VPN tunnel.
+            </p>
+            <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-border/80 bg-black shadow-2xl">
+              <video
+                src="/videos/loop.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                controls
+                className="w-full h-auto max-h-[650px] object-contain mx-auto"
+              />
+            </div>
           </div>
+
+          {/* Guide Video 2: Promo Code Activation Guide (User Video) */}
+          <div className="space-y-4 pt-8 border-t border-border/60">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <Tag className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Promo & Voucher Guide</span>
+                <h2 className="text-2xl md:text-3xl font-bold">Promo Code Activation</h2>
+              </div>
+            </div>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Learn how to enter promo codes or redeem gift vouchers during checkout to get instant discounts or free trial access.
+            </p>
+            <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-emerald-500/30 bg-black shadow-2xl shadow-emerald-500/5">
+              <video
+                src="/videos/promo-code-activation.mp4"
+                playsInline
+                controls
+                className="w-full h-auto max-h-[650px] object-contain mx-auto"
+              />
+            </div>
+          </div>
+
         </div>
 
-        <div className="mt-32 max-w-4xl mx-auto bg-muted rounded-2xl p-8 md:p-12 text-center">
+        <div className="mt-24 max-w-4xl mx-auto bg-muted rounded-2xl p-8 md:p-12 text-center">
           <ShieldCheck className="h-16 w-16 text-primary mx-auto mb-6" />
           <h2 className="text-3xl font-bold mb-4">How does the Bypass actually work?</h2>
           <p className="text-muted-foreground leading-relaxed mb-6">
