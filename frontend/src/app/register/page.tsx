@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useApp } from '@/context/AppContext';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { OtpInput } from '@/components/auth/OtpInput';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://virtual-internet-access.duckdns.org:3001';
 
@@ -111,17 +112,17 @@ const handleFormSubmit = async (e: React.FormEvent) => {
 };
 
   // Step 2: Verify OTP
-  
-const handleVerifyOtp = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
+  const handleVerifyOtp = async (e?: React.FormEvent, customOtp?: string) => {
+    if (e) e.preventDefault();
+    if (isLoading) return;
+    setError(null);
 
-  const cleanOtp = otpCode.trim();
+    const cleanOtp = (customOtp || otpCode).trim();
 
-  if (!/^\d{6}$/.test(cleanOtp)) {
-    setError("Please enter the 6-digit verification code.");
-    return;
-  }
+    if (!/^\d{6}$/.test(cleanOtp)) {
+      setError("Please enter the 6-digit verification code.");
+      return;
+    }
 
   setIsLoading(true);
 
@@ -402,20 +403,23 @@ const handleResendOtp = async () => {
               </span>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-foreground">Enter 6-Digit Code</label>
-              <Input 
-                type="text" 
-                maxLength={6}
-                required 
-                autoFocus
-                className="mt-1 h-12 text-center text-xl font-mono tracking-widest" 
-                placeholder="000000"
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-foreground">Enter 6-Digit Code</label>
+                <span className="text-[11px] text-muted-foreground">Auto-verifies upon 6th digit</span>
+              </div>
+              <OtpInput 
                 value={otpCode}
-                onChange={(e) => {
-                  setOtpCode(e.target.value.replace(/[^0-9]/g, ''));
+                onChange={(val) => {
+                  setOtpCode(val);
                   if (error) setError(null);
                 }}
+                onComplete={(code) => {
+                  handleVerifyOtp(undefined, code);
+                }}
+                disabled={isLoading}
+                hasError={Boolean(error)}
+                autoFocus={true}
               />
             </div>
 

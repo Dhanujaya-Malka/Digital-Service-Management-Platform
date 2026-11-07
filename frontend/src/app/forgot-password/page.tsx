@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { OtpInput } from '@/components/auth/OtpInput';
 
 type Step = 'request' | 'verify' | 'success';
 
@@ -246,21 +247,17 @@ export default function ForgotPasswordPage() {
               </span>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <label className="text-xs font-semibold text-foreground">6-Digit Code</label>
-              <Input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                required
-                className="mt-1 h-12 text-center text-lg font-mono tracking-widest"
-                placeholder="000000"
+              <OtpInput
                 value={otpCode}
-                onChange={(event) => {
-                  setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6));
+                onChange={(val) => {
+                  setOtpCode(val);
                   setError(null);
                 }}
+                disabled={isLoading}
+                hasError={Boolean(error && error.toLowerCase().includes('code'))}
+                autoFocus={true}
               />
             </div>
 
