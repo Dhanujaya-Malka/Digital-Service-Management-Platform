@@ -1,4 +1,4 @@
-import { CheckCircle2, Download, ShieldCheck, Zap, Video, Tag } from 'lucide-react';
+import { CheckCircle2, Download, ShieldCheck, Zap, Video, Tag, CreditCard } from 'lucide-react';
 
 export default function HowItWorksPage() {
   return (
@@ -63,7 +63,7 @@ export default function HowItWorksPage() {
         {/* Video Tutorials Section */}
         <div className="max-w-5xl mx-auto my-24 space-y-20">
           
-          {/* Guide Video 1: VPN Setup & Connection Guide (Existing Showcase Video) */}
+          {/* Guide Video 1: VPN Setup & Connection Guide */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
@@ -90,7 +90,7 @@ export default function HowItWorksPage() {
             </div>
           </div>
 
-          {/* Guide Video 2: Promo Code Activation Guide (User Video) */}
+          {/* Guide Video 2: Promo Code Activation Guide */}
           <div className="space-y-4 pt-8 border-t border-border/60">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
@@ -107,6 +107,30 @@ export default function HowItWorksPage() {
             <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-emerald-500/30 bg-black shadow-2xl shadow-emerald-500/5">
               <video
                 src="/videos/promo-code-activation.mp4"
+                playsInline
+                controls
+                className="w-full h-auto max-h-[650px] object-contain mx-auto"
+              />
+            </div>
+          </div>
+
+          {/* Guide Video 3: Bank Slip Payment Guide */}
+          <div className="space-y-4 pt-8 border-t border-border/60">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Payment & Verification Guide</span>
+                <h2 className="text-2xl md:text-3xl font-bold">Bank Slip Payment Guide</h2>
+              </div>
+            </div>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Follow this step-by-step tutorial to learn how to make a bank transfer, upload your payment receipt or slip, and activate your VPN service quickly.
+            </p>
+            <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-blue-500/30 bg-black shadow-2xl shadow-blue-500/5">
+              <video
+                src="/videos/bank-slip-payment.mp4"
                 playsInline
                 controls
                 className="w-full h-auto max-h-[650px] object-contain mx-auto"

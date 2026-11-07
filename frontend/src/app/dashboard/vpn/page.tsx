@@ -3,12 +3,12 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
-import { ensureStandardVlessUrl, buildVlessUrl } from '@/data/network-configs';
+import { ensureStandardVlessUrl, buildVlessUrl, convertToV2BoxUrl } from '@/data/network-configs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { QrCode, Copy, CheckCircle2, Download, Smartphone, ArrowRight, Zap, Shield, Layers, Radio, Clock, AlertTriangle, XCircle } from 'lucide-react';
+import { QrCode, Copy, CheckCircle2, Download, Smartphone, ArrowRight, Zap, Shield, Layers, Radio, Clock, AlertTriangle, XCircle, Apple } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ActiveVPNItem {
@@ -25,6 +25,7 @@ export default function VPNConfigPage() {
   const { vpnConfig, subscription, user, orders, packages } = useApp();
   const [copied, setCopied] = useState(false);
   const [selectedPkgIndex, setSelectedPkgIndex] = useState(0);
+  const [isV2BoxMode, setIsV2BoxMode] = useState(false);
 
   // Derive all active packages (approved or provisional) for the user
   const userApprovedOrders = useMemo(() => {
@@ -92,9 +93,18 @@ export default function VPNConfigPage() {
     ? activeConfigs[Math.min(selectedPkgIndex, activeConfigs.length - 1)]
     : null;
 
+  // Compute 100% genuine v2box (iOS) compatible Xray link
+  const v2boxConfigUrl = useMemo(() => {
+    if (!currentConfig?.configuration) return '';
+    return convertToV2BoxUrl(currentConfig.configuration, 'aka.ms');
+  }, [currentConfig]);
+
+  // Displayed URL based on user mode toggle (Default vs v2box iOS)
+  const displayedConfigUrl = isV2BoxMode ? v2boxConfigUrl : (currentConfig?.configuration || '');
+
   const copyToClipboard = () => {
-    if (currentConfig?.configuration) {
-      navigator.clipboard.writeText(currentConfig.configuration);
+    if (displayedConfigUrl) {
+      navigator.clipboard.writeText(displayedConfigUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -303,7 +313,7 @@ export default function VPNConfigPage() {
                   <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
                     {/* Live Scannable QR Code */}
                     <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(currentConfig.configuration)}`} 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(displayedConfigUrl)}`} 
                       alt="V2Ray QR Code" 
                       className="w-52 h-52 sm:w-64 sm:h-64 object-contain"
                     />
@@ -359,19 +369,70 @@ export default function VPNConfigPage() {
           <TabsContent value="manual" className="mt-6">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-bold">VLESS Configuration Link ({currentConfig.name})</CardTitle>
-                  <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                      <span>VLESS Configuration Link ({currentConfig.name})</span>
+                      {isV2BoxMode && (
+                        <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-[10px] font-bold">
+                          v2box (iOS) Link Active
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription className="text-xs mt-1">
+                      {isV2BoxMode 
+                        ? 'Original Xray clean code link generated specifically for v2box client on iOS / iPadOS' 
+                        : 'Copy this link and import from clipboard into your VPN client (NetMod, v2rayNG, etc.)'}
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] bg-primary/15 text-primary self-start sm:self-auto">
                     {currentConfig.networkName}
                   </Badge>
                 </div>
-                <CardDescription className="text-xs">Copy this link and import from clipboard into your VPN client</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+
+                {/* v2box (iOS users) generate link button right above the link */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-muted/40 border border-border/80">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-2 rounded-lg ${isV2BoxMode ? 'bg-indigo-500/15 text-indigo-400' : 'bg-primary/15 text-primary'}`}>
+                      {isV2BoxMode ? <Apple className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <span>{isV2BoxMode ? 'v2box (iOS Users) Direct Link Active' : 'Default VLESS Link (Android & Windows)'}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {isV2BoxMode 
+                          ? 'Original Xray clean code link generated specifically for v2box client.' 
+                          : 'Standard format for NetMod, v2rayNG, and desktop clients.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={isV2BoxMode ? 'default' : 'outline'}
+                    onClick={() => {
+                      setIsV2BoxMode(!isV2BoxMode);
+                      setCopied(false);
+                    }}
+                    className={`text-xs font-bold shrink-0 transition-all shadow-sm ${
+                      isV2BoxMode 
+                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white' 
+                        : 'border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/10'
+                    }`}
+                  >
+                    <Apple className="h-3.5 w-3.5 mr-1.5" />
+                    <span>{isV2BoxMode ? 'Revert to Standard Link' : 'v2box (iOS users) generate link'}</span>
+                  </Button>
+                </div>
+
                 <div className="flex gap-2">
                   <Input 
                     readOnly 
-                    value={currentConfig.configuration} 
+                    value={displayedConfigUrl} 
                     className="font-mono text-xs bg-muted"
                   />
                   <Button variant="secondary" onClick={copyToClipboard} className="w-24 shrink-0 text-xs">

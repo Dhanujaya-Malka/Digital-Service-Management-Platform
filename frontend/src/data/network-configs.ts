@@ -470,3 +470,57 @@ export function ensureStandardVlessUrl(
   }
 }
 
+/**
+ * Constructs 100% native 3X-UI Xray VLESS URI optimized specifically for v2box (iOS / iPadOS / macOS)
+ * without extra slashes, flow=none, or spaces in ALPN which cause import errors on Apple devices.
+ * Format: vless://UUID@HOST:PORT?alpn=h2%2Chttp%2F1.1&authority=&encryption=none&fp=chrome&security=tls&serviceName=grpc-service&sni=SNI&type=grpc#REMARK
+ */
+export function buildV2BoxVlessUrl(
+  uuid: string,
+  sni: string = 'aka.ms',
+  remark?: string,
+  host: string = 'virtual-internet-access.duckdns.org',
+  port: number = 443
+): string {
+  const cleanUuid = (uuid || '').replace(/^vless:\/\//, '').split('@')[0].trim();
+  const cleanSni = (sni && sni.trim()) ? sni.trim() : 'aka.ms';
+  const cleanRemark = remark ? `#${remark.replace(/^#/, '')}` : '';
+  return `vless://${cleanUuid}@${host}:${port}?alpn=h2%2Chttp%2F1.1&authority=&encryption=none&fp=chrome&security=tls&serviceName=grpc-service&sni=${cleanSni}&type=grpc${cleanRemark}`;
+}
+
+/**
+ * Converts any existing VLESS configuration URI into the native v2box (iOS) compatible URI.
+ */
+export function convertToV2BoxUrl(
+  url: string,
+  fallbackSni: string = 'aka.ms',
+  fallbackRemark?: string
+): string {
+  if (!url || typeof url !== 'string' || !url.startsWith('vless://')) {
+    return url;
+  }
+  try {
+    const withoutProto = url.replace('vless://', '');
+    const [authPart, restPart] = withoutProto.split('@');
+    if (!authPart || !restPart) return url;
+
+    const [hostPortPart] = restPart.split(/[/?#]/);
+    const hostPort = hostPortPart || 'virtual-internet-access.duckdns.org:443';
+    const [host, portStr] = hostPort.split(':');
+    const port = portStr ? parseInt(portStr, 10) : 443;
+
+    let sni = fallbackSni;
+    const sniMatch = url.match(/[?&]sni=([^&#]+)/);
+    if (sniMatch && sniMatch[1]) {
+      sni = decodeURIComponent(sniMatch[1]);
+    }
+
+    const hashMatch = url.split('#');
+    const remark = hashMatch.length > 1 ? hashMatch[1] : (fallbackRemark || '');
+    return buildV2BoxVlessUrl(authPart, sni, remark, host || 'virtual-internet-access.duckdns.org', port || 443);
+  } catch {
+    return url;
+  }
+}
+
+
